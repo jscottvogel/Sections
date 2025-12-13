@@ -32,6 +32,7 @@ function App() {
               <Route element={<Layout />}>
                 <Route path="/" element={<ResumeDashboard />} />
                 <Route path="/resume/:id" element={<ResumeEditor />} />
+                <Route path="/resume/:id/section/:sectionId" element={<ResumeEditor />} />
               </Route>
             </Routes>
           </main>

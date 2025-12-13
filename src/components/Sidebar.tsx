@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { client } from '../client';
 import type { Schema } from '../../amplify/data/resource';
 import { ChevronRight, ChevronDown, FileText, Plus, Trash2 } from 'lucide-react';
@@ -12,6 +12,7 @@ type Section = Schema['Section']['type'];
 export function Sidebar() {
     const navigate = useNavigate();
     const { id: activeResumeId } = useParams();
+    const location = useLocation();
 
 
     const [resumes, setResumes] = useState<Resume[]>([]);
@@ -58,6 +59,42 @@ export function Sidebar() {
             }
             return newSet;
         });
+    };
+
+    const addSection = async (resumeId: string) => {
+        const title = prompt("Section Name (or type 'Standard' for defaults)");
+        if (!title) return;
+
+        // Check if it's one of the standard ones for auto-template
+        const template = SECTION_TEMPLATES[title] || {};
+
+        // Find current max order
+        const currentSections = sectionsMap[resumeId] || [];
+        const maxOrder = currentSections.reduce((max, s) => Math.max(max, s.order || 0), -1);
+
+        try {
+            const { data: newSection } = await client.models.Section.create({
+                resumeId,
+                title,
+                type: template ? 'standard' : 'custom',
+                order: maxOrder + 1,
+                content: template
+            });
+            if (newSection) {
+                // Refresh sections
+                fetchSections(resumeId);
+                navigate(`/resume/${resumeId}/section/${newSection.id}`);
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
+    const deleteSection = async (e: React.MouseEvent, sectionId: string, resumeId: string) => {
+        e.stopPropagation();
+        if (!confirm("Delete section?")) return;
+        await client.models.Section.delete({ id: sectionId });
+        fetchSections(resumeId);
     };
 
     const deleteResume = async (e: React.MouseEvent, id: string) => {
@@ -112,7 +149,8 @@ export function Sidebar() {
                             <span className="truncate text-sm flex-1">{resume.title}</span>
 
                             <div className="opacity-0 group-hover:opacity-100 flex items-center">
-                                <button onClick={(e) => deleteResume(e, resume.id)} className="p-1 hover:text-red-400"><Trash2 size={12} /></button>
+                                <button onClick={(e) => { e.stopPropagation(); addSection(resume.id); }} className="p-1 hover:text-green-400" title="Add Section"><Plus size={12} /></button>
+                                <button onClick={(e) => deleteResume(e, resume.id)} className="p-1 hover:text-red-400" title="Delete Resume"><Trash2 size={12} /></button>
                             </div>
                         </div>
 
@@ -127,10 +165,16 @@ export function Sidebar() {
                                     {sectionsMap[resume.id]?.map(section => (
                                         <div
                                             key={section.id}
-                                            className="text-xs py-1 px-2 rounded hover:bg-gray-800 cursor-pointer truncate"
-                                        // Future: navigate to specific section anchor
+                                            className={`text-xs py-1 px-2 rounded cursor-pointer truncate flex justify-between group/item ${location.pathname.includes(section.id) ? 'bg-indigo-900 text-indigo-200' : 'hover:bg-gray-800 text-gray-400'}`}
+                                            onClick={() => navigate(`/resume/${resume.id}/section/${section.id}`)}
                                         >
-                                            {section.title}
+                                            <span className="truncate">{section.title}</span>
+                                            <button
+                                                onClick={(e) => deleteSection(e, section.id, resume.id)}
+                                                className="opacity-0 group-hover/item:opacity-100 p-0.5 hover:text-red-400"
+                                            >
+                                                <Trash2 size={10} />
+                                            </button>
                                         </div>
                                     ))}
                                     {(!sectionsMap[resume.id] || sectionsMap[resume.id].length === 0) && (

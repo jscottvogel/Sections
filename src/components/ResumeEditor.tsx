@@ -11,7 +11,7 @@ type Section = Schema['Section']['type'];
 
 
 export function ResumeEditor() {
-    const { id } = useParams<{ id: string }>();
+    const { id, sectionId } = useParams<{ id: string; sectionId: string }>();
     const [resume, setResume] = useState<Resume | null>(null);
     const [sections, setSections] = useState<Section[]>([]);
     const [activeSectionId, _setActiveSectionId] = useState<string | null>(null);
@@ -37,6 +37,16 @@ export function ResumeEditor() {
         };
         fetchResume();
     }, [id]);
+
+    useEffect(() => {
+        if (sectionId) {
+            _setActiveSectionId(sectionId);
+        } else {
+            // If no section ID, maybe unset or set to first?
+            // For now, let's keep it null which shows "Select a section"
+            _setActiveSectionId(null);
+        }
+    }, [sectionId]);
 
 
 
