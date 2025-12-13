@@ -13,6 +13,17 @@ const DEFAULT_SECTIONS = [
     'Skills', 'Projects', 'Certifications', 'Awards'
 ];
 
+const SECTION_TEMPLATES: Record<string, any> = {
+    'Contact': { fullName: "", email: "", phone: "", linkedin: "", location: "" },
+    'Summary': { professionalSummary: "" },
+    'Experience': [{ company: "", role: "", startDate: "", endDate: "", description: "" }],
+    'Education': [{ institution: "", degree: "", startDate: "", endDate: "" }],
+    'Skills': [{ category: "Technical", items: [] }, { category: "Soft Skills", items: [] }],
+    'Projects': [{ name: "", description: "", link: "" }],
+    'Certifications': [{ name: "", issuer: "", date: "" }],
+    'Awards': [{ title: "", issuer: "", date: "" }]
+};
+
 export function ResumeEditor() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
@@ -51,7 +62,7 @@ export function ResumeEditor() {
                 title,
                 type,
                 order: newOrder,
-                content: {}, // Empty JSON
+                content: SECTION_TEMPLATES[title] || {},
             });
             if (newSection) {
                 setSections([...sections, newSection]);
