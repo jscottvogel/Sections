@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { client } from '../client';
 import type { Schema } from '../../amplify/data/resource';
-import { Plus, Loader2, FileText, Trash2, Pencil } from 'lucide-react';
+import { Loader2, FileText, Trash2, Pencil } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { DEFAULT_SECTIONS, SECTION_TEMPLATES } from '../constants';
 
@@ -88,27 +88,20 @@ export function ResumeDashboard() {
     };
 
     return (
-        <div className="p-8 max-w-7xl mx-auto">
-            <header className="flex justify-between items-center mb-12">
+        <div>
+            <header className="mb-12">
                 <div>
                     <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight">Your Resumes</h1>
                     <p className="text-gray-500 mt-2">Manage and edit your professional profiles</p>
                 </div>
-                <button
-                    onClick={createResume}
-                    className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200 font-medium"
-                >
-                    <Plus size={20} /> New Resume
-                </button>
             </header>
-
             {loading ? (
                 <div className="flex justify-center h-64 items-center">
                     <Loader2 className="animate-spin text-indigo-600" size={48} />
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {resumes.map((resume) => (
+                    {resumes.map((resume: Resume) => (
                         <motion.div
                             key={resume.id}
                             onClick={() => navigate(`/resume/${resume.id}`)}

@@ -1,21 +1,20 @@
 import { useEffect, useState, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { client } from '../client';
 import { useReactToPrint } from 'react-to-print';
 import type { Schema } from '../../amplify/data/resource';
-import { GripVertical, Plus, ChevronLeft, Save, FileText, Edit2 } from 'lucide-react';
+import { Save, FileText } from 'lucide-react';
 
 type Resume = Schema['Resume']['type'];
 type Section = Schema['Section']['type'];
 
-import { DEFAULT_SECTIONS, SECTION_TEMPLATES } from '../constants';
+
 
 export function ResumeEditor() {
     const { id } = useParams<{ id: string }>();
-    const navigate = useNavigate();
     const [resume, setResume] = useState<Resume | null>(null);
     const [sections, setSections] = useState<Section[]>([]);
-    const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
+    const [activeSectionId, _setActiveSectionId] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -39,95 +38,14 @@ export function ResumeEditor() {
         fetchResume();
     }, [id]);
 
-    const addSection = async (title: string, type: string = 'custom') => {
-        if (!resume) return;
-        const newOrder = sections.length;
-        try {
-            const { data: newSection } = await client.models.Section.create({
-                resumeId: resume.id,
-                title,
-                type,
-                order: newOrder,
-                content: SECTION_TEMPLATES[title] || {},
-            });
-            if (newSection) {
-                setSections([...sections, newSection]);
-                setActiveSectionId(newSection.id);
-            }
-        } catch (e) {
-            console.error('Failed to create section', e);
-            // Optimistic update or alert
-            alert('Failed to add section');
-        }
-    };
+
 
     if (loading) return <div className="p-10">Loading editor...</div>;
     if (!resume) return <div className="p-10">Resume not found</div>;
 
     return (
         <div className="flex h-[calc(100vh-64px)] overflow-hidden bg-gray-50">
-            {/* Sidebar - Sections List */}
-            <aside className="w-64 bg-white border-r border-gray-200 flex flex-col">
-                <div className="p-4 border-b border-gray-100 flex items-center gap-2">
-                    <button onClick={() => navigate('/')} className="p-1 hover:bg-gray-100 rounded">
-                        <ChevronLeft size={20} />
-                    </button>
-                    <div className="flex-1 min-w-0 flex items-center gap-2 group/title">
-                        <h2
-                            className="font-semibold text-gray-800 truncate cursor-text hover:bg-gray-50 px-1 rounded border border-transparent hover:border-gray-200"
-                            onClick={async () => {
-                                const newTitle = prompt('Rename Resume:', resume.title || '');
-                                if (newTitle && newTitle !== resume.title) {
-                                    try {
-                                        const { data: updated } = await client.models.Resume.update({ id: resume.id, title: newTitle });
-                                        if (updated) setResume({ ...resume, ...updated });
-                                    } catch (e) { console.error(e); }
-                                }
-                            }}
-                        >
-                            {resume.title}
-                        </h2>
-                        <Edit2 size={12} className="text-gray-300 opacity-0 group-hover/title:opacity-100" />
-                    </div>
-                </div>
 
-                <div className="flex-1 overflow-y-auto p-2 space-y-1">
-                    {sections.map(section => (
-                        <div
-                            key={section.id}
-                            onClick={() => setActiveSectionId(section.id)}
-                            className={`flex items-center gap-2 p-2 rounded cursor-pointer group ${activeSectionId === section.id ? 'bg-indigo-50 text-indigo-700 font-medium' : 'hover:bg-gray-50 text-gray-700'}`}
-                        >
-                            <GripVertical size={16} className="text-gray-300 group-hover:text-gray-400 cursor-move" />
-                            <span className="truncate">{section.title}</span>
-                        </div>
-                    ))}
-
-                    <div className="pt-4 px-2">
-                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Add Section</p>
-                        <div className="grid grid-cols-1 gap-1">
-                            {DEFAULT_SECTIONS.filter(t => !sections.some(s => s.title === t)).map(title => (
-                                <button
-                                    key={title}
-                                    onClick={() => addSection(title, 'standard')}
-                                    className="text-left text-sm px-2 py-1 text-gray-600 hover:bg-gray-50 rounded flex items-center gap-2"
-                                >
-                                    <Plus size={14} /> {title}
-                                </button>
-                            ))}
-                            <button
-                                onClick={() => {
-                                    const t = prompt('Section Name:');
-                                    if (t) addSection(t, 'custom');
-                                }}
-                                className="text-left text-sm px-2 py-1 text-indigo-600 hover:bg-indigo-50 rounded flex items-center gap-2 font-medium"
-                            >
-                                <Plus size={14} /> Custom Section
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </aside>
 
             {/* Main Content Area */}
             <main className="flex-1 overflow-y-auto p-8 relative">
