@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { client } from '../client';
 import type { Schema } from '../../amplify/data/resource';
-import { Plus, Loader2, FileText } from 'lucide-react';
+import { Plus, Loader2, FileText, Trash2, Pencil } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { DEFAULT_SECTIONS, SECTION_TEMPLATES } from '../constants';
 
 type Resume = Schema['Resume']['type'];
 
@@ -37,11 +38,52 @@ export function ResumeDashboard() {
                 isMain: false,
             });
             if (newResume) {
+                // Auto-create default sections
+                await Promise.all(DEFAULT_SECTIONS.map((title, index) =>
+                    client.models.Section.create({
+                        resumeId: newResume.id,
+                        title,
+                        type: 'standard',
+                        order: index,
+                        content: SECTION_TEMPLATES[title] || {}
+                    })
+                ));
+
                 navigate(`/resume/${newResume.id}`);
             }
         } catch (e) {
             console.error('Creation failed', e);
             alert('Failed to create resume (Backend might be unreachable)');
+        }
+    };
+
+    const deleteResume = async (e: React.MouseEvent, id: string) => {
+        e.stopPropagation();
+        if (confirm('Are you sure you want to delete this resume?')) {
+            try {
+                await client.models.Resume.delete({ id });
+                setResumes(resumes.filter((r: Resume) => r.id !== id));
+            } catch (err) {
+                console.error(err);
+            }
+        }
+    };
+
+    const renameResume = async (e: React.MouseEvent, resume: Resume) => {
+        e.stopPropagation();
+        const newTitle = prompt('New Title:', resume.title || '');
+        if (!newTitle || newTitle === resume.title) return;
+
+        try {
+            const { data: updated } = await client.models.Resume.update({
+                id: resume.id,
+                title: newTitle
+            });
+            if (updated) {
+                setResumes(resumes.map((r: Resume) => r.id === resume.id ? updated : r));
+            }
+        } catch (err) {
+            console.error(err);
         }
     };
 
@@ -79,10 +121,28 @@ export function ResumeDashboard() {
                                 <div className="p-3 bg-indigo-50 text-indigo-600 rounded-lg group-hover:bg-indigo-600 group-hover:text-white transition-colors">
                                     <FileText size={24} />
                                 </div>
-                                <span className="text-xs font-mono text-gray-400">{resume.createdAt?.slice(0, 10)}</span>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={(e) => renameResume(e, resume)}
+                                        className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-gray-100 rounded-full transition-colors"
+                                        title="Rename"
+                                    >
+                                        <Pencil size={16} />
+                                    </button>
+                                    <button
+                                        onClick={(e) => deleteResume(e, resume.id)}
+                                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
+                                        title="Delete"
+                                    >
+                                        <Trash2 size={16} />
+                                    </button>
+                                </div>
                             </div>
-                            <h2 className="text-xl font-bold text-gray-800 mb-2 group-hover:text-indigo-600 transition-colors">{resume.title}</h2>
-                            <p className="text-sm text-gray-500 line-clamp-2">{resume.description || 'No description'}</p>
+                            <h2 className="text-xl font-bold text-gray-800 mb-2 group-hover:text-indigo-600 transition-colors truncate">{resume.title}</h2>
+                            <div className="flex justify-between items-end mt-4">
+                                <p className="text-sm text-gray-500 line-clamp-2 flex-1">{resume.description || 'No description'}</p>
+                                <span className="text-xs font-mono text-gray-300 ml-2 whitespace-nowrap">{resume.createdAt?.slice(0, 10)}</span>
+                            </div>
                         </motion.div>
                     ))}
 

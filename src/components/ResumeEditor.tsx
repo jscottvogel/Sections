@@ -3,26 +3,12 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { client } from '../client';
 import { useReactToPrint } from 'react-to-print';
 import type { Schema } from '../../amplify/data/resource';
-import { GripVertical, Plus, ChevronLeft, Save, FileText } from 'lucide-react';
+import { GripVertical, Plus, ChevronLeft, Save, FileText, Edit2 } from 'lucide-react';
 
 type Resume = Schema['Resume']['type'];
 type Section = Schema['Section']['type'];
 
-const DEFAULT_SECTIONS = [
-    'Contact', 'Summary', 'Experience', 'Education',
-    'Skills', 'Projects', 'Certifications', 'Awards'
-];
-
-const SECTION_TEMPLATES: Record<string, any> = {
-    'Contact': { fullName: "", email: "", phone: "", linkedin: "", location: "" },
-    'Summary': { professionalSummary: "" },
-    'Experience': [{ company: "", role: "", startDate: "", endDate: "", description: "" }],
-    'Education': [{ institution: "", degree: "", startDate: "", endDate: "" }],
-    'Skills': [{ category: "Technical", items: [] }, { category: "Soft Skills", items: [] }],
-    'Projects': [{ name: "", description: "", link: "" }],
-    'Certifications': [{ name: "", issuer: "", date: "" }],
-    'Awards': [{ title: "", issuer: "", date: "" }]
-};
+import { DEFAULT_SECTIONS, SECTION_TEMPLATES } from '../constants';
 
 export function ResumeEditor() {
     const { id } = useParams<{ id: string }>();
@@ -86,7 +72,23 @@ export function ResumeEditor() {
                     <button onClick={() => navigate('/')} className="p-1 hover:bg-gray-100 rounded">
                         <ChevronLeft size={20} />
                     </button>
-                    <h2 className="font-semibold text-gray-800 truncate">{resume.title}</h2>
+                    <div className="flex-1 min-w-0 flex items-center gap-2 group/title">
+                        <h2
+                            className="font-semibold text-gray-800 truncate cursor-text hover:bg-gray-50 px-1 rounded border border-transparent hover:border-gray-200"
+                            onClick={async () => {
+                                const newTitle = prompt('Rename Resume:', resume.title || '');
+                                if (newTitle && newTitle !== resume.title) {
+                                    try {
+                                        const { data: updated } = await client.models.Resume.update({ id: resume.id, title: newTitle });
+                                        if (updated) setResume({ ...resume, ...updated });
+                                    } catch (e) { console.error(e); }
+                                }
+                            }}
+                        >
+                            {resume.title}
+                        </h2>
+                        <Edit2 size={12} className="text-gray-300 opacity-0 group-hover/title:opacity-100" />
+                    </div>
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-2 space-y-1">
