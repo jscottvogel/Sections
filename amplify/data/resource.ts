@@ -4,17 +4,15 @@ const schema = a.schema({
   Resume: a.model({
     title: a.string(),
     description: a.string(),
-    sections: a.hasMany('Section', 'resumeId'),
-    isMain: a.boolean(),
+    // We will store the structure/order of sections here in JSON, or as a connection to a specific ResumeSection join table later.
+    // For now, let's keep it simple: Resumes are snapshots or lists of section IDs.
+    sectionIds: a.string().array(),
   }).authorization(allow => [allow.owner()]),
 
   Section: a.model({
-    title: a.string().required(),
-    type: a.string(), // e.g. "Work Experience", "Education"
-    content: a.json(), // Flexible JSON content
-    order: a.integer(),
-    resumeId: a.id(),
-    resume: a.belongsTo('Resume', 'resumeId'),
+    category: a.string().required(), // e.g. "Experience", "Education", "Skills"
+    title: a.string().required(), // Friendly name for the user
+    content: a.json(), // The data fields
   }).authorization(allow => [allow.owner()]),
 });
 

@@ -13,7 +13,7 @@ type Section = Schema['Section']['type'];
 export function ResumeEditor() {
     const { id, sectionId } = useParams<{ id: string; sectionId: string }>();
     const [resume, setResume] = useState<Resume | null>(null);
-    const [sections, setSections] = useState<Section[]>([]);
+    const [sections, _setSections] = useState<Section[]>([]);
     const [activeSectionId, _setActiveSectionId] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
 
@@ -21,14 +21,9 @@ export function ResumeEditor() {
         if (!id) return;
         const fetchResume = async () => {
             try {
-                // Mock fetching for now if offline, or try real fetch
                 const { data: r } = await client.models.Resume.get({ id });
                 setResume(r);
-                if (r) {
-                    const { data: s } = await r.sections();
-                    // Sort by order
-                    setSections(s.sort((a: any, b: any) => (a.order || 0) - (b.order || 0)));
-                }
+                // Future: Fetch the included sections based on r.sectionIds
             } catch (e) {
                 console.error(e);
             } finally {
@@ -37,6 +32,10 @@ export function ResumeEditor() {
         };
         fetchResume();
     }, [id]);
+
+    // Stub for selecting sections
+    // const availableSections = ...
+
 
     useEffect(() => {
         if (sectionId) {

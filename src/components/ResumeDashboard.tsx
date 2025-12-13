@@ -4,7 +4,7 @@ import { client } from '../client';
 import type { Schema } from '../../amplify/data/resource';
 import { Loader2, FileText, Trash2, Pencil } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { DEFAULT_SECTIONS, SECTION_TEMPLATES } from '../constants';
+
 
 type Resume = Schema['Resume']['type'];
 
@@ -32,23 +32,8 @@ export function ResumeDashboard() {
         if (!title) return;
 
         try {
-            const { data: newResume } = await client.models.Resume.create({
-                title,
-                description: 'New Resume',
-                isMain: false,
-            });
+            const { data: newResume } = await client.models.Resume.create({ title, description: 'New Resume', sectionIds: [] });
             if (newResume) {
-                // Auto-create default sections
-                await Promise.all(DEFAULT_SECTIONS.map((title, index) =>
-                    client.models.Section.create({
-                        resumeId: newResume.id,
-                        title,
-                        type: 'standard',
-                        order: index,
-                        content: SECTION_TEMPLATES[title] || {}
-                    })
-                ));
-
                 navigate(`/resume/${newResume.id}`);
             }
         } catch (e) {

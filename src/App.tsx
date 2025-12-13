@@ -3,6 +3,7 @@ import '@aws-amplify/ui-react/styles.css';
 import { Routes, Route } from 'react-router-dom';
 import { ResumeDashboard } from './components/ResumeDashboard';
 import { ResumeEditor } from './components/ResumeEditor';
+import { DataManager } from './components/DataManager';
 import { Layout } from './components/Layout';
 
 function App() {
@@ -31,8 +32,8 @@ function App() {
             <Routes>
               <Route element={<Layout />}>
                 <Route path="/" element={<ResumeDashboard />} />
+                <Route path="/data/:category" element={<DataManager />} />
                 <Route path="/resume/:id" element={<ResumeEditor />} />
-                <Route path="/resume/:id/section/:sectionId" element={<ResumeEditor />} />
               </Route>
             </Routes>
           </main>
