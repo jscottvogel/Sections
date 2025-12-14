@@ -160,14 +160,13 @@ describe('KnowledgeBaseDetail JSON Sync & Import', () => {
         const syncBtn = screen.getByRole('button', { name: /Sync Changes/i });
         await user.click(syncBtn);
 
-        // Verify updateKB called with new metadata
+        // Verify updateKB called with stringified metadata
         expect(mockUpdateKB).toHaveBeenCalledWith(expect.objectContaining({
-            metadata: expect.objectContaining({
-                profile: expect.objectContaining({
-                    name: expect.objectContaining({ full: 'Updated User' })
-                })
-            })
+            metadata: expect.any(String)
         }));
+
+        const callArg = JSON.parse(mockUpdateKB.mock.calls[0][0].metadata);
+        expect(callArg.profile.name.full).toBe('Updated User');
 
         // Verify createSection called for new section
         expect(mockCreateSection).toHaveBeenCalledWith(expect.objectContaining({
@@ -198,16 +197,18 @@ describe('KnowledgeBaseDetail JSON Sync & Import', () => {
 
         // Verify metadata update
         expect(mockUpdateKB).toHaveBeenCalledWith(expect.objectContaining({
-            metadata: expect.objectContaining({ profile: expect.objectContaining({ name: expect.objectContaining({ full: 'Imported User' }) }) })
+            metadata: expect.any(String)
         }));
+
+        const metadataArg = JSON.parse(mockUpdateKB.mock.lastCall![0].metadata);
+        expect(metadataArg.profile.name.full).toBe('Imported User');
 
         // Verify creation of non-duplicate (Imported Section 1)
         expect(mockCreateSection).toHaveBeenCalledWith(expect.objectContaining({ title: 'Imported Section 1' }));
 
         // Verify handling of duplicate (Section 1)
-        // It should have been called first (failing) then second with suffix
         expect(mockCreateSection).toHaveBeenCalledWith(expect.objectContaining({
-            title: expect.stringMatching(/Section 1 \(Imported .+\)/)
+            title: expect.stringContaining('Section 1 (Imported')
         }));
     });
 });

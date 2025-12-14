@@ -32,7 +32,8 @@ export function KnowledgeBaseDetail() {
         try {
             if (updateKB) {
                 // Update the KB record with the new metadata blob
-                await updateKB({ metadata });
+                // Ensure it is stringified for AWSJSON if strictly required or contains undefineds which Graphql rejects
+                await updateKB({ metadata: JSON.stringify(metadata) as any });
             }
 
             // 2. Append New Sections
@@ -116,7 +117,8 @@ export function KnowledgeBaseDetail() {
             // 1. Sync Metadata (Profile, Document, Sources, etc.) to KnowledgeBase
             // We strip 'sections' from the full document and save the rest as metadata.
             if (updateKB) {
-                await updateKB({ metadata });
+                // Ensure valid AWSJSON format
+                await updateKB({ metadata: JSON.stringify(metadata) as any });
             }
 
             // 2. Sync Sections (Reconciliation)
