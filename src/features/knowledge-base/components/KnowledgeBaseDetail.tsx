@@ -29,11 +29,23 @@ export function KnowledgeBaseDetail() {
         // 1. Update Metadata (Profile, Document Info, etc.)
         const { sections: importedSections, ...metadata } = importedData;
 
+        // Helper to clean object for AWS/JSON compatibility.
+        const cleanPayload = (obj: any): any => {
+            if (!obj) return {};
+            return JSON.parse(JSON.stringify(obj));
+        };
+
         try {
             if (updateKB) {
-                // Update the KB record with the new metadata blob
-                // Ensure it is stringified for AWSJSON if strictly required or contains undefineds which Graphql rejects
-                await updateKB({ metadata: JSON.stringify(metadata) as any });
+                // Attempt to update metadata, but don't block sections if it fails
+                try {
+                    const safeMetadata = cleanPayload(metadata);
+                    // Ensure it is stringified for AWSJSON 
+                    await updateKB({ metadata: JSON.stringify(safeMetadata) as any });
+                } catch (metaErr) {
+                    console.error("Metadata update failed, proceeding to sections:", metaErr);
+                    // Continue to sections
+                }
             }
 
             // 2. Append New Sections
@@ -251,7 +263,6 @@ export function KnowledgeBaseDetail() {
                         </button>
                         <button
                             onClick={() => {
-                                setJsonContent(JSON.stringify(sections, null, 2));
                                 setViewMode('json');
                             }}
                             className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${viewMode === 'json' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
