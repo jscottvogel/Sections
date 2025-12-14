@@ -28,6 +28,9 @@ export function ImportModal({ isOpen, onClose, onImport }: ImportModalProps) {
         setError(null);
     };
 
+    /**
+     * Handles the file selection and initiates the AI analysis simulation.
+     */
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             setFile(e.target.files[0]);
@@ -35,6 +38,10 @@ export function ImportModal({ isOpen, onClose, onImport }: ImportModalProps) {
         }
     };
 
+    /**
+     * Simulates the AI Agent analysis process.
+     * Transitions state from 'upload' -> 'analyzing' -> 'review'.
+     */
     const startAnalysis = async (selectedFile: File) => {
         setStep('analyzing');
         setError(null);
@@ -50,15 +57,20 @@ export function ImportModal({ isOpen, onClose, onImport }: ImportModalProps) {
 
     const [isImporting, setIsImporting] = useState(false);
 
+    /**
+     * Finalizes the import by passing the parsed data to the parent component.
+     * Closes the modal immediately on success.
+     */
     const handleConfirmImport = async () => {
         if (!parsedData) return;
         setIsImporting(true);
         try {
             await onImport(parsedData);
             onClose();
-            // Reset after close to avoid flickering
+            // Reset state slightly after closing to prevent UI flicker
             setTimeout(reset, 100);
         } catch (err: any) {
+            console.error(err);
             setError("Failed to save import: " + err.message);
             setIsImporting(false);
         }
@@ -86,6 +98,7 @@ export function ImportModal({ isOpen, onClose, onImport }: ImportModalProps) {
                                     className="hidden"
                                     accept=".pdf,.docx,.txt"
                                     onChange={handleFileSelect}
+                                    data-testid="file-upload"
                                 />
                             </div>
                             {error && <p className="text-sm text-red-500">{error}</p>}

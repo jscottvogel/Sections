@@ -19,27 +19,38 @@ export function KnowledgeBaseDetail() {
 
     const [isImportOpen, setIsImportOpen] = useState(false);
 
+    /**
+     * Handles the import of a document processed by the AI Agent.
+     * Merges the parsed metadata into the KnowledgeBase and creates new sections.
+     * 
+     * @param importedData - The full ResumeDocument structure from the ImportModal
+     */
     const handleImportDocument = async (importedData: any) => {
-        // 1. Update Metadata
+        // 1. Update Metadata (Profile, Document Info, etc.)
         const { sections: importedSections, ...metadata } = importedData;
 
         if (updateKB) {
+            // Update the KB record with the new metadata blob
             await updateKB({ metadata });
         }
 
-        // 2. Append Sections
-        // We do not delete existing sections, just append new ones.
+        // 2. Append New Sections
+        // Iterate through detected sections and create them in the database.
         await Promise.all(importedSections.map(async (s: any) => {
             const { id, label, type, order, ...restContent } = s;
+
+            // Map JSON schema back to DB schema
             await createSection({
                 title: label || 'Imported Section',
                 type: type || 'custom',
+                // Note: We let the backend or default logic handle order if not provided, 
+                // or append to the end based on current list length.
                 content: restContent
             });
         }));
 
-        // Refresh
-        // Hooks update automatically
+        // Hooks (useSections, useKnowledgeBase) will automatically refresh the UI 
+        // once the mutations are successful.
     };
 
     // Update JSON content when switching to JSON mode or when sections change (if not currently editing)
