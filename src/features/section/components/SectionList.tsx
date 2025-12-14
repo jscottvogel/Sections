@@ -1,38 +1,69 @@
 import { useState } from 'react';
-import { useSections } from '../hooks/useSections';
 import { TEMPLATES, type SectionTemplateDef } from '../templates';
 import { Button } from '../../../components/ui/Button';
 import { Loader2, Plus, X } from 'lucide-react';
 import { SectionContainer } from './SectionContainer';
+import type { Section } from '../../../types';
 
 interface SectionListProps {
     knowledgeBaseId: string;
-    onSectionCreated?: () => void;
+    sections: Section[];
+    loading: boolean;
+    onCreateSection: (data: { title: string; type: string; content?: any }) => Promise<Section | undefined>;
+    onUpdateSection: (id: string, updates: Partial<Section>) => Promise<void>;
+    onDeleteSection: (id: string) => Promise<void>;
 }
 
 /**
  * Component to list all sections for a Knowledge Base.
  * Allows creating new sections from templates.
- * Triggers onSectionCreated callback when a new section is added (useful for sidebar updates).
+ * State is managed by the parent to ensure Quick Nav synchronization.
  */
-export function SectionList({ knowledgeBaseId, onSectionCreated }: SectionListProps) {
-    const { sections, loading, createSection, updateSection, deleteSection } = useSections(knowledgeBaseId);
+export function SectionList({
+    knowledgeBaseId,
+    sections,
+    loading,
+    onCreateSection,
+    onUpdateSection,
+    onDeleteSection
+}: SectionListProps) {
     const [isAdding, setIsAdding] = useState(false);
 
     const handleAddStart = () => setIsAdding(true);
     const handleAddCancel = () => setIsAdding(false);
 
+    const getUniqueTitle = (baseTitle: string) => {
+        let title = baseTitle;
+        let counter = 1;
+
+        const isTitleTaken = (t: string) => sections.some(s => s.title.toLowerCase() === t.toLowerCase());
+
+        // If the base title is taken, try adding numbers until we find a unique one
+        // Check "Custom Section", then "Custom Section 1", "Custom Section 2", etc.
+        if (isTitleTaken(title)) {
+            while (isTitleTaken(`${baseTitle} ${counter}`)) {
+                counter++;
+            }
+            title = `${baseTitle} ${counter}`;
+        }
+
+        return title;
+    };
+
     const handleAddType = async (template: SectionTemplateDef) => {
         try {
             setIsAdding(false);
-            await createSection({
-                title: template.label,
+
+            // Determine effective title
+            // For 'custom', we enforce uniqueness logic specifically requested by user ("Custom Section 1", etc.)
+            // For other types, we generally stick to the template label, but let's apply the uniqueness check to all to be safe.
+            const title = getUniqueTitle(template.label);
+
+            await onCreateSection({
+                title: title,
                 type: template.type,
                 content: template.isCollection ? { items: [] } : {}
             });
-            if (onSectionCreated) {
-                onSectionCreated();
-            }
         } catch (error: any) {
             console.error("Failed to create section:", error);
             // Re-open the add menu so user can try again
@@ -51,8 +82,8 @@ export function SectionList({ knowledgeBaseId, onSectionCreated }: SectionListPr
                 <SectionContainer
                     key={section.id}
                     section={section}
-                    onUpdate={updateSection}
-                    onDelete={deleteSection}
+                    onUpdate={onUpdateSection}
+                    onDelete={onDeleteSection}
                 />
             ))}
 

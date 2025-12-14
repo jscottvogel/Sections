@@ -9,7 +9,7 @@ export function KnowledgeBaseDetail() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const { knowledgeBase, loading: kbLoading } = useKnowledgeBase(id);
-    const { sections, refresh } = useSections(id);
+    const { sections, createSection, updateSection, deleteSection } = useSections(id);
 
     if (kbLoading) {
         return <div className="flex items-center justify-center h-64"><Loader2 className="animate-spin text-indigo-600" /></div>;
@@ -61,7 +61,14 @@ export function KnowledgeBaseDetail() {
                 </div>
 
                 <div className="lg:col-span-3 space-y-8">
-                    <SectionList knowledgeBaseId={id} onSectionCreated={refresh} />
+                    <SectionList
+                        knowledgeBaseId={id}
+                        sections={sections}
+                        loading={false} // useSections loading is already handled by parent check mostly, but being safe
+                        onCreateSection={createSection}
+                        onUpdateSection={updateSection}
+                        onDeleteSection={deleteSection}
+                    />
                 </div>
             </div>
         </div>
