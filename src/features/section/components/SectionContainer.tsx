@@ -24,7 +24,12 @@ export function SectionContainer({ section, onUpdate, onDelete }: SectionContain
     };
 
     const handleUpdateContent = async (newContent: any) => {
-        await onUpdate(section.id, { content: newContent });
+        try {
+            await onUpdate(section.id, { content: newContent });
+        } catch (error) {
+            console.error("Failed to update section:", error);
+            alert("Failed to save changes. Please try again.");
+        }
     };
 
     return (

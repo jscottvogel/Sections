@@ -76,15 +76,22 @@ export function useSections(knowledgeBaseId: string | undefined) {
      */
     async function updateSection(id: string, updates: Partial<Section>) {
         try {
+            // Ensure content is stringified if present, as it is an AWSJSON field
+            const payload = { ...updates };
+            if (payload.content) {
+                payload.content = JSON.stringify(payload.content);
+            }
+
             const { data: updated, errors } = await client.models.Section.update({
                 id,
-                ...updates
+                ...payload
             });
             if (errors) throw new Error(errors[0].message);
             if (!updated) throw new Error('Failed to update section');
 
             setSections(prev => prev.map(s => s.id === id ? updated : s));
         } catch (err: any) {
+            console.error("Error in updateSection hook:", err);
             setError(err.message);
             throw err;
         }

@@ -61,4 +61,26 @@ describe('useSections Hook', () => {
         }));
         expect(result.current.sections).toContainEqual(newSection);
     });
+
+    it('updates a section with stringified content', async () => {
+        const mockSection = { id: 's1', title: 'Old', type: 'custom', content: '{}' };
+        mockClient.models.Section.update.mockResolvedValue({ data: { ...mockSection, title: 'Updated' }, errors: null });
+
+        const { result } = renderHook(() => useSections('kb-123'));
+
+        // Seed state manually for update testing since we can't easily mock list-then-update sequence without complex mocks
+        // But useSections initialized with fetch, so we can mock list to return one item
+        mockClient.models.Section.list.mockResolvedValue({ data: [mockSection], errors: null });
+
+        await waitFor(() => expect(result.current.loading).toBe(false));
+
+        await act(async () => {
+            await result.current.updateSection('s1', { content: { some: 'data' } });
+        });
+
+        expect(mockClient.models.Section.update).toHaveBeenCalledWith(expect.objectContaining({
+            id: 's1',
+            content: JSON.stringify({ some: 'data' })
+        }));
+    });
 });
