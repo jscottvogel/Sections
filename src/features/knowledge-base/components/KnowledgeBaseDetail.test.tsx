@@ -43,7 +43,24 @@ vi.mock('../../section/components/SectionList', () => ({
     SectionList: () => <div data-testid="section-list">Section List</div>
 }));
 
-describe.skip('KnowledgeBaseDetail JSON Sync', () => {
+// Mock ImportModal to isolate integration logic
+vi.mock('../../import/components/ImportModal', () => ({
+    ImportModal: ({ isOpen, onImport }: any) => isOpen ? (
+        <div data-testid="mock-import-modal">
+            <button onClick={() => onImport({
+                sections: [
+                    { label: 'Imported Section 1', type: 'custom', items: [] },
+                    { label: 'Section 1', type: 'custom', items: [] } // Duplicate title
+                ],
+                profile: { name: { full: 'Imported User' } }
+            })}>
+                Trigger Import
+            </button>
+        </div>
+    ) : null
+}));
+
+describe('KnowledgeBaseDetail JSON Sync & Import', () => {
     const mockUpdateKB = vi.fn();
     const mockCreateSection = vi.fn();
     const mockUpdateSection = vi.fn();
@@ -101,8 +118,6 @@ describe.skip('KnowledgeBaseDetail JSON Sync', () => {
         render(<KnowledgeBaseDetail />);
 
         // Switch to JSON view
-        // Note: We need to find the button. It might check for text "JSON" or specific class or icon.
-        // Based on code: <button ...>JSON</button>
         const jsonBtn = screen.getByText('JSON', { selector: 'button' });
         fireEvent.click(jsonBtn);
 
@@ -159,6 +174,40 @@ describe.skip('KnowledgeBaseDetail JSON Sync', () => {
             title: 'New Section',
             type: 'experience',
             content: expect.objectContaining({ items: [{ role: 'Dev' }] })
+        }));
+    });
+
+    it('handles AI Import and resolves duplicates', async () => {
+        const user = userEvent.setup();
+        // Mock createSection to simulate error on first call (duplicate) then success
+        mockCreateSection.mockImplementation(async (data) => {
+            // Simulate backend error for duplicate
+            if (data.title === 'Section 1') throw new Error('A section with the name "Section 1" already exists.');
+            return { id: 'new', ...data };
+        });
+
+        render(<KnowledgeBaseDetail />);
+
+        // Open Import Modal
+        const aiBtn = screen.getByText(/Ai Import/i);
+        await user.click(aiBtn);
+
+        // Click mocked trigger
+        const triggerBtn = screen.getByText('Trigger Import');
+        await user.click(triggerBtn);
+
+        // Verify metadata update
+        expect(mockUpdateKB).toHaveBeenCalledWith(expect.objectContaining({
+            metadata: expect.objectContaining({ profile: expect.objectContaining({ name: expect.objectContaining({ full: 'Imported User' }) }) })
+        }));
+
+        // Verify creation of non-duplicate (Imported Section 1)
+        expect(mockCreateSection).toHaveBeenCalledWith(expect.objectContaining({ title: 'Imported Section 1' }));
+
+        // Verify handling of duplicate (Section 1)
+        // It should have been called first (failing) then second with suffix
+        expect(mockCreateSection).toHaveBeenCalledWith(expect.objectContaining({
+            title: expect.stringMatching(/Section 1 \(Imported .+\)/)
         }));
     });
 });

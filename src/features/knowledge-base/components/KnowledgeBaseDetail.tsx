@@ -29,28 +29,43 @@ export function KnowledgeBaseDetail() {
         // 1. Update Metadata (Profile, Document Info, etc.)
         const { sections: importedSections, ...metadata } = importedData;
 
-        if (updateKB) {
-            // Update the KB record with the new metadata blob
-            await updateKB({ metadata });
+        try {
+            if (updateKB) {
+                // Update the KB record with the new metadata blob
+                await updateKB({ metadata });
+            }
+
+            // 2. Append New Sections
+            // Process sequentially to handle duplicates better
+            for (const s of importedSections) {
+                const { id, label, type, order, ...restContent } = s;
+
+                try {
+                    // Map JSON schema back to DB schema
+                    await createSection({
+                        title: label || 'Imported Section',
+                        type: type || 'custom',
+                        content: restContent
+                    });
+                } catch (err: any) {
+                    // Handle duplicates gracefully by appending a suffix
+                    if (err.message && err.message.includes('already exists')) {
+                        console.warn(`Section "${label}" exists. Creating copy.`);
+                        await createSection({
+                            title: `${label || 'Section'} (Imported ${new Date().toLocaleTimeString()})`,
+                            type: type || 'custom',
+                            content: restContent
+                        });
+                    } else {
+                        // Log other errors but try to continue
+                        console.error("Failed to create section:", err);
+                    }
+                }
+            }
+        } catch (e) {
+            console.error("Import level error:", e);
+            throw e; // Propagate to Modal to show error
         }
-
-        // 2. Append New Sections
-        // Iterate through detected sections and create them in the database.
-        await Promise.all(importedSections.map(async (s: any) => {
-            const { id, label, type, order, ...restContent } = s;
-
-            // Map JSON schema back to DB schema
-            await createSection({
-                title: label || 'Imported Section',
-                type: type || 'custom',
-                // Note: We let the backend or default logic handle order if not provided, 
-                // or append to the end based on current list length.
-                content: restContent
-            });
-        }));
-
-        // Hooks (useSections, useKnowledgeBase) will automatically refresh the UI 
-        // once the mutations are successful.
     };
 
     // Update JSON content when switching to JSON mode or when sections change (if not currently editing)

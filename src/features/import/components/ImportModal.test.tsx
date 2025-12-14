@@ -1,5 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ImportModal } from './ImportModal';
 import { DocumentParser } from '../services/DocumentParser';
@@ -41,33 +40,25 @@ describe('ImportModal', () => {
     });
 
     it('calls onImport and closes on success', async () => {
-        const user = userEvent.setup();
         vi.mocked(DocumentParser.parse).mockResolvedValue(mockParsedData);
         mockOnImport.mockResolvedValue(undefined);
 
         render(<ImportModal isOpen={true} onClose={mockOnClose} onImport={mockOnImport} />);
 
-        // 1. Upload
         const file = new File(['dummy'], 'resume.pdf', { type: 'application/pdf' });
         const input = screen.getByTestId('file-upload');
-        await user.upload(input, file);
+        fireEvent.change(input, { target: { files: [file] } });
 
-        // 2. Wait for Review state (skipping analyzing check due to speed)
         await waitFor(() => expect(screen.getByText('Analysis Complete')).toBeInTheDocument());
 
-        // 3. Click Import
         const importBtn = screen.getByText('Import Data');
-        await user.click(importBtn);
+        fireEvent.click(importBtn);
 
-        // 4. Verify onImport called
         await waitFor(() => expect(mockOnImport).toHaveBeenCalledWith(mockParsedData));
-
-        // 5. Verify Close called
         await waitFor(() => expect(mockOnClose).toHaveBeenCalled());
     });
 
     it('shows error if onImport fails', async () => {
-        const user = userEvent.setup();
         vi.mocked(DocumentParser.parse).mockResolvedValue(mockParsedData);
         mockOnImport.mockRejectedValue(new Error('Save failed'));
 
@@ -75,13 +66,15 @@ describe('ImportModal', () => {
 
         const file = new File(['dummy'], 'resume.pdf', { type: 'application/pdf' });
         const input = screen.getByTestId('file-upload');
-        await user.upload(input, file);
+        fireEvent.change(input, { target: { files: [file] } });
 
         await waitFor(() => expect(screen.getByText('Import Data')).toBeInTheDocument());
 
-        await user.click(screen.getByText('Import Data'));
+        fireEvent.click(screen.getByText('Import Data'));
 
-        await waitFor(() => expect(screen.getByText('Failed to save import: Save failed')).toBeInTheDocument());
+        // Wait for error text
+        const errorMsg = await screen.findByText(/Failed to save import: Save failed/i, {}, { timeout: 3000 });
+        expect(errorMsg).toBeInTheDocument();
         expect(mockOnClose).not.toHaveBeenCalled();
     });
 });
