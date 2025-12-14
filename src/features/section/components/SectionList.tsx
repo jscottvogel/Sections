@@ -6,7 +6,6 @@ import { SectionContainer } from './SectionContainer';
 import type { Section } from '../../../types';
 
 interface SectionListProps {
-    knowledgeBaseId: string;
     sections: Section[];
     loading: boolean;
     onCreateSection: (data: { title: string; type: string; content?: any }) => Promise<Section | undefined>;
@@ -20,7 +19,6 @@ interface SectionListProps {
  * State is managed by the parent to ensure Quick Nav synchronization.
  */
 export function SectionList({
-    knowledgeBaseId,
     sections,
     loading,
     onCreateSection,

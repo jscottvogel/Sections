@@ -156,7 +156,6 @@ export function KnowledgeBaseDetail() {
 
                     <div className="lg:col-span-3 space-y-8">
                         <SectionList
-                            knowledgeBaseId={id}
                             sections={sections}
                             loading={false}
                             onCreateSection={createSection}
