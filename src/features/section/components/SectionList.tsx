@@ -28,12 +28,11 @@ export function SectionList({ knowledgeBaseId, onSectionCreated }: SectionListPr
             if (onSectionCreated) {
                 onSectionCreated();
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error("Failed to create section:", error);
             // Re-open the add menu so user can try again
             setIsAdding(true);
-            // Ideally we'd show a toast here, but for now console error is better than crash
-            alert("Failed to create section. Check console for details.");
+            alert(error.message || "Failed to create section. Check console for details.");
         }
     };
 

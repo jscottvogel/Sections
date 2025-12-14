@@ -64,10 +64,16 @@ export function useSections(knowledgeBaseId: string | undefined) {
     async function createSection(data: { title: string; type: string; content?: any }) {
         if (!knowledgeBaseId) return;
         try {
+            const normalizedTitle = data.title.trim();
+            const isDuplicate = sections.some(s => s.title.toLowerCase() === normalizedTitle.toLowerCase());
+            if (isDuplicate) {
+                throw new Error(`A section with the name "${normalizedTitle}" already exists.`);
+            }
+
             const order = sections.length;
             const { data: newSection, errors } = await client.models.Section.create({
                 knowledgeBaseId,
-                title: data.title,
+                title: normalizedTitle,
                 type: data.type,
                 content: JSON.stringify(data.content || {}),
                 order
@@ -92,6 +98,15 @@ export function useSections(knowledgeBaseId: string | undefined) {
      */
     async function updateSection(id: string, updates: Partial<Section>) {
         try {
+            if (updates.title) {
+                const normalizedTitle = updates.title.trim();
+                const isDuplicate = sections.some(s => s.id !== id && s.title.toLowerCase() === normalizedTitle.toLowerCase());
+                if (isDuplicate) {
+                    throw new Error(`A section with the name "${normalizedTitle}" already exists.`);
+                }
+                updates.title = normalizedTitle;
+            }
+
             // Ensure content is stringified if present, as it is an AWSJSON field
             const payload = { ...updates };
             if (payload.content) {
