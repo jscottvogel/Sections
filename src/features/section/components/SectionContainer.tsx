@@ -23,12 +23,12 @@ export function SectionContainer({ section, onUpdate, onDelete }: SectionContain
         }
     };
 
-    const handleUpdateContent = async (newContent: any) => {
+    const handleUpdateSection = async (updates: Partial<Section>) => {
         try {
-            await onUpdate(section.id, { content: newContent });
+            await onUpdate(section.id, updates);
         } catch (error) {
             console.error("Failed to update section:", error);
-            alert("Failed to save changes. Please try again.");
+            alert("Failed to save. Please try again.");
         }
     };
 
@@ -51,13 +51,13 @@ export function SectionContainer({ section, onUpdate, onDelete }: SectionContain
                         <CollectionEditor
                             section={section}
                             template={template}
-                            onUpdate={handleUpdateContent}
+                            onUpdate={(content) => handleUpdateSection({ content })}
                         />
                     ) : (
                         <SingletonEditor
                             section={section}
                             template={template}
-                            onUpdate={handleUpdateContent}
+                            onUpdate={handleUpdateSection}
                         />
                     )}
                 </CardContent>
