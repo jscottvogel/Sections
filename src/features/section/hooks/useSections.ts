@@ -15,6 +15,19 @@ export function useSections(knowledgeBaseId: string | undefined) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
+    // Helper to ensure content is always a valid object
+    const normalizeSection = (section: Section): Section => {
+        if (typeof section.content === 'string') {
+            try {
+                return { ...section, content: JSON.parse(section.content) };
+            } catch (e) {
+                console.warn(`Failed to parse content for section ${section.id}`, e);
+                return { ...section, content: {} };
+            }
+        }
+        return section;
+    };
+
     const fetchSections = useCallback(async () => {
         if (!knowledgeBaseId) return;
         try {
@@ -27,8 +40,10 @@ export function useSections(knowledgeBaseId: string | undefined) {
             });
             if (errors) throw new Error(errors[0].message);
 
-            // Sort in memory by order
-            const sorted = items.sort((a, b) => (a.order || 0) - (b.order || 0));
+            // Sort in memory by order and normalize content
+            const sorted = items
+                .map(normalizeSection)
+                .sort((a, b) => (a.order || 0) - (b.order || 0));
             setSections(sorted);
         } catch (err: any) {
             setError(err.message);
@@ -60,8 +75,9 @@ export function useSections(knowledgeBaseId: string | undefined) {
             if (errors) throw new Error(errors[0].message);
             if (!newSection) throw new Error('Failed to create section');
 
-            setSections(prev => [...prev, newSection]);
-            return newSection;
+            const normalized = normalizeSection(newSection);
+            setSections(prev => [...prev, normalized]);
+            return normalized;
         } catch (err: any) {
             console.error("Error in createSection hook:", err);
             setError(err.message);
@@ -89,7 +105,8 @@ export function useSections(knowledgeBaseId: string | undefined) {
             if (errors) throw new Error(errors[0].message);
             if (!updated) throw new Error('Failed to update section');
 
-            setSections(prev => prev.map(s => s.id === id ? updated : s));
+            const normalized = normalizeSection(updated);
+            setSections(prev => prev.map(s => s.id === id ? normalized : s));
         } catch (err: any) {
             console.error("Error in updateSection hook:", err);
             setError(err.message);
