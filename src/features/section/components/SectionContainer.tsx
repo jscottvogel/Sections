@@ -33,7 +33,7 @@ export function SectionContainer({ section, onUpdate, onDelete }: SectionContain
     };
 
     return (
-        <Card className="overflow-hidden transition-all duration-200 border-slate-200">
+        <Card id={section.id} className="overflow-hidden transition-all duration-200 border-slate-200">
             <CardHeader className="bg-slate-50 border-b border-slate-100 py-3 px-4 flex flex-row items-center justify-between cursor-pointer" onClick={() => setExpanded(!expanded)}>
                 <div className="flex items-center gap-3">
                     {expanded ? <ChevronUp className="h-4 w-4 text-slate-400" /> : <ChevronDown className="h-4 w-4 text-slate-400" />}

@@ -1,5 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useKnowledgeBase } from '../hooks/useKnowledgeBase';
+import { useSections } from '../../section/hooks/useSections';
 import { Button } from '../../../components/ui/Button';
 import { Loader2, ArrowLeft } from 'lucide-react';
 import { SectionList } from '../../section/components/SectionList';
@@ -8,6 +9,7 @@ export function KnowledgeBaseDetail() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const { knowledgeBase, loading: kbLoading } = useKnowledgeBase(id);
+    const { sections } = useSections(id);
 
     if (kbLoading) {
         return <div className="flex items-center justify-center h-64"><Loader2 className="animate-spin text-indigo-600" /></div>;
@@ -38,8 +40,23 @@ export function KnowledgeBaseDetail() {
                 <div className="lg:col-span-1 space-y-4">
                     <div className="bg-white rounded-lg border border-slate-200 p-4 shadow-sm sticky top-24">
                         <h3 className="font-semibold text-slate-700 mb-4">Quick Nav</h3>
-                        <p className="text-sm text-slate-400">Scroll down to view sections.</p>
-                        {/* Future: TOC derived from sections */}
+                        {sections.length === 0 ? (
+                            <p className="text-sm text-slate-400">Add sections to see them here.</p>
+                        ) : (
+                            <ul className="space-y-2">
+                                {sections.map(section => (
+                                    <li key={section.id}>
+                                        <a
+                                            href={`#${section.id}`}
+                                            className="text-sm text-slate-600 hover:text-indigo-600 hover:underline block truncate"
+                                            title={section.title}
+                                        >
+                                            {section.title}
+                                        </a>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
                     </div>
                 </div>
 
