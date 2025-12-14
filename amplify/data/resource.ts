@@ -1,18 +1,19 @@
 import { type ClientSchema, a, defineData } from '@aws-amplify/backend';
 
 const schema = a.schema({
-  Resume: a.model({
-    title: a.string(),
+  KnowledgeBase: a.model({
+    title: a.string().default('My Knowledge Base'),
     description: a.string(),
-    // We will store the structure/order of sections here in JSON, or as a connection to a specific ResumeSection join table later.
-    // For now, let's keep it simple: Resumes are snapshots or lists of section IDs.
-    sectionIds: a.string().array(),
+    sections: a.hasMany('Section', 'knowledgeBaseId'),
   }).authorization(allow => [allow.owner()]),
 
   Section: a.model({
-    category: a.string().required(), // e.g. "Experience", "Education", "Skills"
-    title: a.string().required(), // Friendly name for the user
-    content: a.json(), // The data fields
+    knowledgeBaseId: a.id().required(),
+    knowledgeBase: a.belongsTo('KnowledgeBase', 'knowledgeBaseId'),
+    type: a.string().required(), // e.g. "education", "experience"
+    title: a.string().required(), // User facing title
+    content: a.json(), // Structured data based on type
+    order: a.integer(),
   }).authorization(allow => [allow.owner()]),
 });
 

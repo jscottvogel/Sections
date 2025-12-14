@@ -1,46 +1,41 @@
 import { Authenticator } from '@aws-amplify/ui-react';
 import '@aws-amplify/ui-react/styles.css';
 import { Routes, Route } from 'react-router-dom';
-import { ResumeDashboard } from './components/ResumeDashboard';
-import { ResumeEditor } from './components/ResumeEditor';
-import { DataManager } from './components/DataManager';
-import { Layout } from './components/Layout';
+import { Dashboard } from './features/knowledge-base/components/Dashboard';
+import { KnowledgeBaseDetail } from './features/knowledge-base/components/KnowledgeBaseDetail';
 
 function App() {
-  return (
-    <Authenticator>
-      {({ signOut, user }) => (
-        <div className="min-h-screen bg-gray-50 font-sans">
-          <nav className="bg-white border-b border-gray-200 px-6 py-3 flex justify-between items-center sticky top-0 z-20 shadow-sm">
-            <div className="flex items-center gap-2">
-              <div className="h-8 w-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold">S</div>
-              <div className="font-bold text-xl text-gray-900 tracking-tight">Sections</div>
-            </div>
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-gray-500 hidden md:block">
-                👋 {user?.signInDetails?.loginId}
-              </span>
-              <button
-                onClick={signOut}
-                className="text-sm font-medium text-gray-600 hover:text-red-600 transition-colors px-3 py-1.5 rounded-md hover:bg-gray-50"
-              >
-                Sign Out
-              </button>
-            </div>
-          </nav>
-          <main>
-            <Routes>
-              <Route element={<Layout />}>
-                <Route path="/" element={<ResumeDashboard />} />
-                <Route path="/data/:category" element={<DataManager />} />
-                <Route path="/resume/:id" element={<ResumeEditor />} />
-              </Route>
-            </Routes>
-          </main>
-        </div>
-      )}
-    </Authenticator>
-  );
+    return (
+        <Authenticator>
+            {({ signOut, user }) => (
+                <div className="min-h-screen bg-slate-50 flex flex-col">
+                    <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between shadow-sm sticky top-0 z-10">
+                        <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                            Knowledge Sections
+                        </h1>
+                        <div className="flex items-center gap-4">
+                            <span className="text-sm text-slate-600 w-auto text-right">
+                                {user?.signInDetails?.loginId && `Hello, ${user.signInDetails.loginId}`}
+                            </span>
+                            <button
+                                onClick={signOut}
+                                className="text-sm font-medium text-slate-600 hover:text-red-600 transition-colors"
+                            >
+                                Sign Out
+                            </button>
+                        </div>
+                    </header>
+
+                    <main className="flex-1 container mx-auto max-w-5xl py-8 px-4">
+                        <Routes>
+                            <Route path="/" element={<Dashboard />} />
+                            <Route path="/kb/:id" element={<KnowledgeBaseDetail />} />
+                        </Routes>
+                    </main>
+                </div>
+            )}
+        </Authenticator>
+    );
 }
 
 export default App;
