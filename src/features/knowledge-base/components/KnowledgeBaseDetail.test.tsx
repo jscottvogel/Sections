@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { KnowledgeBaseDetail } from './KnowledgeBaseDetail';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -50,7 +50,7 @@ vi.mock('../../import/components/ImportModal', () => ({
             <button onClick={() => onImport({
                 sections: [
                     { label: 'Imported Section 1', type: 'custom', items: [] },
-                    { label: 'Section 1', type: 'custom', items: [] } // Duplicate title
+                    { label: 'Section 1', type: 'custom', items: [] } // Duplicate title for duplicate test
                 ],
                 profile: { name: { full: 'Imported User' } }
             })}>
@@ -210,5 +210,31 @@ describe('KnowledgeBaseDetail JSON Sync & Import', () => {
         expect(mockCreateSection).toHaveBeenCalledWith(expect.objectContaining({
             title: expect.stringContaining('Section 1 (Imported')
         }));
+    });
+
+    it('continues to create sections even if metadata update fails', async () => {
+        // Suppress console error for this test as we expect it
+        const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
+        const user = userEvent.setup();
+
+        // Mock updateKB to fail
+        mockUpdateKB.mockRejectedValue(new Error('Invalid Metadata'));
+        mockCreateSection.mockResolvedValue({ id: 'new' });
+
+        render(<KnowledgeBaseDetail />);
+
+        const aiBtn = screen.getByText(/Ai Import/i);
+        await user.click(aiBtn);
+        const triggerBtn = screen.getByText('Trigger Import');
+        await user.click(triggerBtn);
+
+        // Verify metadata update was attempted
+        expect(mockUpdateKB).toHaveBeenCalled();
+
+        // Verify sections were STILL created
+        expect(mockCreateSection).toHaveBeenCalledWith(expect.objectContaining({ title: 'Imported Section 1' }));
+        expect(mockCreateSection).toHaveBeenCalledWith(expect.objectContaining({ title: 'Section 1' }));
+
+        consoleSpy.mockRestore();
     });
 });
