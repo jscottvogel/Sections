@@ -48,17 +48,19 @@ export function ImportModal({ isOpen, onClose, onImport }: ImportModalProps) {
         }
     };
 
+    const [isImporting, setIsImporting] = useState(false);
+
     const handleConfirmImport = async () => {
         if (!parsedData) return;
+        setIsImporting(true);
         try {
             await onImport(parsedData);
-            setStep('success');
-            setTimeout(() => {
-                onClose();
-                reset();
-            }, 1500);
+            onClose();
+            // Reset after close to avoid flickering
+            setTimeout(reset, 100);
         } catch (err: any) {
             setError("Failed to save import: " + err.message);
+            setIsImporting(false);
         }
     };
 
@@ -142,8 +144,11 @@ export function ImportModal({ isOpen, onClose, onImport }: ImportModalProps) {
                     )}
                     {step === 'review' && (
                         <>
-                            <Button variant="ghost" onClick={reset}>Back</Button>
-                            <Button onClick={handleConfirmImport}>Import Data</Button>
+                            <Button variant="ghost" onClick={reset} disabled={isImporting}>Back</Button>
+                            <Button onClick={handleConfirmImport} disabled={isImporting}>
+                                {isImporting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                {isImporting ? 'Importing...' : 'Import Data'}
+                            </Button>
                         </>
                     )}
                 </DialogFooter>
