@@ -7,9 +7,10 @@ import { SectionContainer } from './SectionContainer';
 
 interface SectionListProps {
     knowledgeBaseId: string;
+    onSectionCreated?: () => void;
 }
 
-export function SectionList({ knowledgeBaseId }: SectionListProps) {
+export function SectionList({ knowledgeBaseId, onSectionCreated }: SectionListProps) {
     const { sections, loading, createSection, updateSection, deleteSection } = useSections(knowledgeBaseId);
     const [isAdding, setIsAdding] = useState(false);
 
@@ -24,6 +25,9 @@ export function SectionList({ knowledgeBaseId }: SectionListProps) {
                 type: template.type,
                 content: template.isCollection ? { items: [] } : {}
             });
+            if (onSectionCreated) {
+                onSectionCreated();
+            }
         } catch (error) {
             console.error("Failed to create section:", error);
             // Re-open the add menu so user can try again
