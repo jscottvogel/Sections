@@ -3,9 +3,9 @@ import type { Section } from '../../../types';
 import { TEMPLATES } from '../templates';
 import { SingletonEditor } from './SingletonEditor';
 import { CollectionEditor } from './CollectionEditor';
-import { Button } from '../../components/ui/Button';
+import { Button } from '../../../components/ui/Button';
 import { Trash2, ChevronDown, ChevronUp } from 'lucide-react';
-import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/Card';
+import { Card, CardHeader, CardTitle, CardContent } from '../../../components/ui/Card';
 
 interface SectionContainerProps {
     section: Section;

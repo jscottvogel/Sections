@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useKnowledgeBases } from '../hooks/useKnowledgeBases';
-import { Button } from '../../components/ui/Button';
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '../../components/ui/Card';
-import { Input } from '../../components/ui/Input';
+import { Button } from '../../../components/ui/Button';
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '../../../components/ui/Card';
+import { Input } from '../../../components/ui/Input';
 import { Loader2, Plus, ArrowRight, Trash2 } from 'lucide-react';
 
 export function Dashboard() {
@@ -53,7 +53,7 @@ export function Dashboard() {
                             <Input
                                 placeholder="e.g., Main Resume 2025"
                                 value={newTitle}
-                                onChange={(e) => setNewTitle(e.target.value)}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewTitle(e.target.value)}
                                 disabled={isCreating}
                             />
                             <Button type="submit" className="w-full" disabled={!newTitle.trim() || isCreating}>

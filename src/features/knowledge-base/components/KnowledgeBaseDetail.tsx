@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useKnowledgeBase } from '../hooks/useKnowledgeBase';
-import { Button } from '../../components/ui/Button';
+import { Button } from '../../../components/ui/Button';
 import { Loader2, ArrowLeft } from 'lucide-react';
 import { SectionList } from '../../section/components/SectionList';
 
@@ -17,7 +17,7 @@ export function KnowledgeBaseDetail() {
         return (
             <div className="text-center py-12">
                 <h2 className="text-xl font-semibold text-slate-800">Knowledge Base Not Found</h2>
-                <Button onClick={() => navigate('/')} variant="link" className="mt-4">Back to Dashboard</Button>
+                <Button onClick={() => navigate('/')} variant="ghost" className="mt-4">Back to Dashboard</Button>
             </div>
         );
     }

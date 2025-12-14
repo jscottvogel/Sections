@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { generateClient } from 'aws-amplify/data';
 import type { Schema } from '../../../../amplify/data/resource';
-import { KnowledgeBase } from '../../../types';
+import type { KnowledgeBase } from '../../../types';
 
 const client = generateClient<Schema>();
 

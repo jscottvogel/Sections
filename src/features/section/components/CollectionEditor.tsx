@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { Section } from '../../../types';
 import type { SectionTemplateDef } from '../templates';
 import { GenericForm } from './GenericForm';
-import { Button } from '../../components/ui/Button';
+import { Button } from '../../../components/ui/Button';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
 
 interface CollectionEditorProps {
@@ -25,14 +25,14 @@ export function CollectionEditor({ section, template, onUpdate }: CollectionEdit
         } else {
             newItems.push(data);
         }
-        await onUpdate({ ...section.content, items: newItems });
+        await onUpdate({ ...(section.content as object), items: newItems });
         setEditingIndex(null);
         setIsAdding(false);
     };
 
     const handleDeleteItem = async (index: number) => {
         const newItems = items.filter((_: any, i: number) => i !== index);
-        await onUpdate({ ...section.content, items: newItems });
+        await onUpdate({ ...(section.content as object), items: newItems });
     };
 
     const getSummary = (item: any) => {
