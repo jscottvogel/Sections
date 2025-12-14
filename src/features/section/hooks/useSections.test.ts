@@ -56,7 +56,8 @@ describe('useSections Hook', () => {
 
         expect(mockClient.models.Section.create).toHaveBeenCalledWith(expect.objectContaining({
             knowledgeBaseId: 'kb-123',
-            title: 'New'
+            title: 'New',
+            content: JSON.stringify({})
         }));
         expect(result.current.sections).toContainEqual(newSection);
     });

@@ -54,7 +54,7 @@ export function useSections(knowledgeBaseId: string | undefined) {
                 knowledgeBaseId,
                 title: data.title,
                 type: data.type,
-                content: data.content || {},
+                content: JSON.stringify(data.content || {}),
                 order
             });
             if (errors) throw new Error(errors[0].message);
