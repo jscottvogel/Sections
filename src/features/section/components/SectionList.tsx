@@ -1,8 +1,7 @@
 import { useState } from 'react';
-import type { Section } from '../../../types';
 import { useSections } from '../hooks/useSections';
 import { TEMPLATES, type SectionTemplateDef } from '../templates';
-import { Button } from '../../components/ui/Button';
+import { Button } from '../../../components/ui/Button';
 import { Loader2, Plus, X } from 'lucide-react';
 import { SectionContainer } from './SectionContainer';
 

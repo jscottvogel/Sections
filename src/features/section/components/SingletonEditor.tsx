@@ -17,7 +17,7 @@ export function SingletonEditor({ section, template, onUpdate }: SingletonEditor
     return (
         <GenericForm
             fields={template.fields}
-            initialValues={section.content || {}}
+            initialValues={(section.content as Record<string, any>) || {}}
             onSubmit={handleSave}
             submitLabel="Save Changes"
         />
