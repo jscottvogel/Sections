@@ -4,6 +4,7 @@ const schema = a.schema({
   KnowledgeBase: a.model({
     title: a.string().default('My Knowledge Base'),
     description: a.string(),
+    metadata: a.json(), // Stores profile, document, sources, etc.
     sections: a.hasMany('Section', 'knowledgeBaseId'),
   }).authorization(allow => [allow.owner()]),
 

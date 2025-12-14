@@ -29,5 +29,20 @@ export function useKnowledgeBase(id: string | undefined) {
         }
     }
 
-    return { knowledgeBase, loading, error, refresh: fetchKB };
+    async function updateKB(updates: Partial<KnowledgeBase>) {
+        if (!id) return;
+        try {
+            setLoading(true);
+            const { data, errors } = await client.models.KnowledgeBase.update({ id, ...updates });
+            if (errors) throw new Error(errors[0].message);
+            setKnowledgeBase(data);
+        } catch (err: any) {
+            setError(err.message);
+            throw err;
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    return { knowledgeBase, loading, error, refresh: fetchKB, updateKB };
 }

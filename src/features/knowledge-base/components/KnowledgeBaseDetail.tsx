@@ -9,7 +9,7 @@ import { SectionList } from '../../section/components/SectionList';
 export function KnowledgeBaseDetail() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
-    const { knowledgeBase, loading: kbLoading } = useKnowledgeBase(id);
+    const { knowledgeBase, loading: kbLoading, updateKB } = useKnowledgeBase(id);
     const { sections, createSection, updateSection, deleteSection } = useSections(id);
 
     const [viewMode, setViewMode] = useState<'visual' | 'json'>('visual');
@@ -18,45 +18,92 @@ export function KnowledgeBaseDetail() {
 
     // Update JSON content when switching to JSON mode or when sections change (if not currently editing)
     useEffect(() => {
-        if (viewMode === 'visual') {
-            setJsonContent(JSON.stringify(sections, null, 2));
+        if (viewMode === 'visual' && knowledgeBase) {
+            // Construct the full document
+            // If metadata exists, use it as base, otherwise default structure
+            const baseData = knowledgeBase.metadata ? JSON.parse(JSON.stringify(knowledgeBase.metadata)) : {};
+
+            // Override with actual sections from DB
+            const fullDoc = {
+                ...baseData,
+                sections: sections.map(s => {
+                    // Normalize DB section to JSON schema section if needed
+                    // For now, we assume s.content contains 'items', etc.
+                    // and we merge top-level fields like id, title->label, type, order
+                    return {
+                        id: s.id,
+                        type: s.type,
+                        label: s.title,
+                        order: s.order,
+                        // items are in content, or content IS the items wrapper? 
+                        // Based on templates, content IS { items: [...] } usually.
+                        // But user JSON has top-level 'items' in the section object.
+                        // We need to map `content.items` to `items` key for the JSON view if we want to match their schema strictly.
+                        // Let's assume content spreads into the object for now for maximum flexibility, 
+                        // OR we map explicitly.
+                        // User Schema: { id, type, label, order, items: [...] }
+                        // DB Schema: { id, type, title, order, content: { items: [...] } }
+                        // Let's flatten content for JSON view:
+                        ...(typeof s.content === 'object' ? s.content : {}),
+                    };
+                })
+            };
+
+            setJsonContent(JSON.stringify(fullDoc, null, 2));
         }
-    }, [sections, viewMode]);
+    }, [sections, knowledgeBase, viewMode]);
 
     const handleJsonSave = async () => {
         try {
             setIsSyncing(true);
-            const newSections = JSON.parse(jsonContent);
-            if (!Array.isArray(newSections)) throw new Error("JSON must be an array of section objects.");
+            const fullDoc = JSON.parse(jsonContent);
+            const { sections: newSectionsJson, ...metadata } = fullDoc;
 
+            if (!Array.isArray(newSectionsJson)) throw new Error("JSON must have a 'sections' array.");
+
+            // 1. Sync Metadata to KnowledgeBase
+            // We only need to save if it changed, but simpler to just save.
+            if (updateKB) {
+                await updateKB({ metadata });
+            }
+
+            // 2. Sync Sections (Reconciliation)
             const currentIds = new Set(sections.map(s => s.id));
-            const newIds = new Set(newSections.map((s: any) => s.id).filter(Boolean));
+            const newIds = new Set(newSectionsJson.map((s: any) => s.id).filter(Boolean));
 
-            // 1. Delete removed sections
+            // Delete removed sections
             const toDelete = sections.filter(s => !newIds.has(s.id));
             await Promise.all(toDelete.map(s => deleteSection(s.id)));
 
-            // 2. Update existing and Create new
-            await Promise.all(newSections.map(async (s: any) => {
+            // Update/Create sections
+            await Promise.all(newSectionsJson.map(async (s: any) => {
+                // Map back from JSON schema to DB schema
+                // JSON: { id, label, type, items: [...] }
+                // DB:   { id, title, type, content: { items: [...] } }
+
+                const { id, label, type, order, ...restContent } = s;
+
+                // If 'items' is in restContent, it goes into content. Perfect.
+                const dbPayload = {
+                    title: label || 'Untitled',
+                    type: type || 'custom',
+                    order: typeof order === 'number' ? order : 0,
+                    content: restContent // This packs 'items' and other fields into content
+                };
+
                 if (s.id && currentIds.has(s.id)) {
-                    // Update: Only if it exists in current. 
-                    // Note: We need to separate content (JSON) from other fields if we want to be precise,
-                    // but updateSection handles parsing.
-                    // Ideally we should diff, but for now we push the update.
-                    const { id, createdAt, updatedAt, ...updates } = s;
-                    await updateSection(id, updates);
+                    await updateSection(s.id, dbPayload);
                 } else {
-                    // Create: No ID or ID not found (new Custom ID? No, Amplify assigns IDs usually, but let's see)
-                    // If the user provides an ID that doesn't exist in DB, we treat it as a new section 
-                    // and let Backend assign a real ID. We ignore the provided fake ID.
-                    const { id, createdAt, updatedAt, ...creationData } = s;
-                    await createSection(creationData);
+                    await createSection(dbPayload);
                 }
             }));
 
-            // Switch back to visual to see results
+            // Force visual refresh by ensuring we fetch latest
+            // (Hooks should auto-update, but metadata might need a tick)
+
             setViewMode('visual');
         } catch (e: any) {
+            console.error(e);
             alert(`Failed to sync JSON: ${e.message}`);
         } finally {
             setIsSyncing(false);
