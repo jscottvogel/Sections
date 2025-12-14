@@ -20,6 +20,11 @@ export interface SectionTemplate {
     description: string;
     defaultContent: Record<string, any>;
 }
+/**
+ * Represents the full Resume/CV document structure.
+ * This structure corresponds to the JSON schema used for import/export.
+ * It includes metadata (profile, document info) and a list of sections.
+ */
 export interface ResumeDocument {
     schema_version: string;
     document: {
@@ -72,6 +77,10 @@ export interface ResumeDocument {
 
 // Map our DB Section to ResumeSection structure where possible, 
 // but note DB Section has 'content' (any) while ResumeSection is explicit.
+/**
+ * Represents a section within the Resume document.
+ * This maps to the 'Section' model in the database, with 'items' stored in the 'content' JSON field.
+ */
 export interface ResumeSection {
     id: string;
     type: string;

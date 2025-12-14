@@ -16,12 +16,13 @@ describe('GenericForm Component', () => {
     });
 
     it('submits valid data', async () => {
+        const user = userEvent.setup();
         const handleSubmit = vi.fn();
         render(<GenericForm fields={fields} onSubmit={handleSubmit} />);
 
-        await userEvent.type(screen.getByLabelText('Name *'), 'John Doe');
-        await userEvent.type(screen.getByLabelText('Bio'), 'Developer');
-        await userEvent.click(screen.getByRole('button', { name: /save/i }));
+        await user.type(screen.getByLabelText('Name *'), 'John Doe');
+        await user.type(screen.getByLabelText('Bio'), 'Developer');
+        await user.click(screen.getByRole('button', { name: /save/i }));
 
         expect(handleSubmit).toHaveBeenCalledWith(expect.objectContaining({
             name: 'John Doe',

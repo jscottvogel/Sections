@@ -61,13 +61,14 @@ export function KnowledgeBaseDetail() {
 
             if (!Array.isArray(newSectionsJson)) throw new Error("JSON must have a 'sections' array.");
 
-            // 1. Sync Metadata to KnowledgeBase
-            // We only need to save if it changed, but simpler to just save.
+            // 1. Sync Metadata (Profile, Document, Sources, etc.) to KnowledgeBase
+            // We strip 'sections' from the full document and save the rest as metadata.
             if (updateKB) {
                 await updateKB({ metadata });
             }
 
             // 2. Sync Sections (Reconciliation)
+            // We compare IDs to determine Creates, Updates, and Deletes for the Section model.
             const currentIds = new Set(sections.map(s => s.id));
             const newIds = new Set(newSectionsJson.map((s: any) => s.id).filter(Boolean));
 
