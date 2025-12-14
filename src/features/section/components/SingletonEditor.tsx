@@ -1,6 +1,7 @@
 import type { Section } from '../../../types';
-import type { SectionTemplateDef } from '../templates';
+import type { SectionTemplateDef, FieldDefinition } from '../templates';
 import { GenericForm } from './GenericForm';
+import { FieldManager } from './FieldManager';
 
 interface SingletonEditorProps {
     section: Section;
@@ -9,24 +10,28 @@ interface SingletonEditorProps {
 }
 
 export function SingletonEditor({ section, template, onUpdate }: SingletonEditorProps) {
-    // section.content is the direct object
+    // Custom fields are stored in the content object under _customFields
+    const content = section.content as Record<string, any>;
+    const customFields = (content._customFields as FieldDefinition[]) || [];
+
     // We inject the title into the form values so it can be edited
     const initialValues = {
-        ...(section.content as Record<string, any>),
+        ...content,
         title: section.title
     };
 
     const handleSave = async (data: any) => {
         // Extract title if it's part of the template (like custom sections)
-        const { title, ...content } = data;
+        const { title, ...rest } = data;
 
-        // If the template has a title field, we update the section title
-        // Otherwise we just update content
-        const updates: Partial<Section> = { content };
+        // Preserve _customFields when saving content
+        const newContent = {
+            ...rest,
+            _customFields: customFields
+        };
 
-        // Only update title if it was actually in the form data (i.e., defined in template)
-        // and distinct from previous. use 'title' in data check or template field check.
-        // For now, if 'title' is in data, we assume it maps to section title.
+        const updates: Partial<Section> = { content: newContent };
+
         if (typeof title === 'string') {
             updates.title = title;
         }
@@ -34,12 +39,30 @@ export function SingletonEditor({ section, template, onUpdate }: SingletonEditor
         await onUpdate(updates);
     };
 
+    const handleFieldsChange = async (newFields: FieldDefinition[]) => {
+        const newContent = {
+            ...content,
+            _customFields: newFields
+        };
+        await onUpdate({ content: newContent });
+    };
+
+    const allFields = [...template.fields, ...customFields];
+
     return (
-        <GenericForm
-            fields={template.fields}
-            initialValues={initialValues}
-            onSubmit={handleSave}
-            submitLabel="Save"
-        />
+        <div className="space-y-6">
+            <GenericForm
+                fields={allFields}
+                initialValues={initialValues}
+                onSubmit={handleSave}
+                submitLabel="Save"
+            />
+            <div className="border-t pt-4">
+                <FieldManager
+                    customFields={customFields}
+                    onFieldsChange={handleFieldsChange}
+                />
+            </div>
+        </div>
     );
 }

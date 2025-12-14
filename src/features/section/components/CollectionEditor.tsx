@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import type { Section } from '../../../types';
-import type { SectionTemplateDef } from '../templates';
+import type { SectionTemplateDef, FieldDefinition } from '../templates';
 import { GenericForm } from './GenericForm';
+import { FieldManager } from './FieldManager';
 import { Button } from '../../../components/ui/Button';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
 
@@ -15,8 +16,10 @@ export function CollectionEditor({ section, template, onUpdate }: CollectionEdit
     const [editingIndex, setEditingIndex] = useState<number | null>(null);
     const [isAdding, setIsAdding] = useState(false);
 
-    // Content is expected to be { items: [...] }
-    const items = (section.content as any)?.items || [];
+    // Content is expected to be { items: [...], _customFields: [...] }
+    const content = (section.content as any) || {};
+    const items = content.items || [];
+    const customFields = (content._customFields as FieldDefinition[]) || [];
 
     const handleSaveItem = async (data: any) => {
         const newItems = [...items];
@@ -25,15 +28,21 @@ export function CollectionEditor({ section, template, onUpdate }: CollectionEdit
         } else {
             newItems.push(data);
         }
-        await onUpdate({ ...(section.content as object), items: newItems });
+        await onUpdate({ ...content, items: newItems });
         setEditingIndex(null);
         setIsAdding(false);
     };
 
     const handleDeleteItem = async (index: number) => {
         const newItems = items.filter((_: any, i: number) => i !== index);
-        await onUpdate({ ...(section.content as object), items: newItems });
+        await onUpdate({ ...content, items: newItems });
     };
+
+    const handleFieldsChange = async (newFields: FieldDefinition[]) => {
+        await onUpdate({ ...content, _customFields: newFields });
+    };
+
+    const allFields = [...template.fields, ...customFields];
 
     const getSummary = (item: any) => {
         // Try to find reasonable summary fields
@@ -49,7 +58,7 @@ export function CollectionEditor({ section, template, onUpdate }: CollectionEdit
             <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
                 <h4 className="font-medium text-slate-800 mb-4">{editingIndex !== null ? 'Edit' : 'Add'} {template.itemLabel || 'Item'}</h4>
                 <GenericForm
-                    fields={template.fields}
+                    fields={allFields}
                     initialValues={initialValues}
                     onSubmit={handleSaveItem}
                     onCancel={() => { setIsAdding(false); setEditingIndex(null); }}
@@ -91,6 +100,13 @@ export function CollectionEditor({ section, template, onUpdate }: CollectionEdit
             <Button onClick={() => setIsAdding(true)} variant="secondary" size="sm" className="w-full mt-2">
                 <Plus className="mr-2 h-3.5 w-3.5" /> Add {template.itemLabel || 'Item'}
             </Button>
+
+            <div className="border-t pt-4 mt-4">
+                <FieldManager
+                    customFields={customFields}
+                    onFieldsChange={handleFieldsChange}
+                />
+            </div>
         </div>
     );
 }

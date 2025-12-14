@@ -3,8 +3,9 @@ import type { Section } from '../../../types';
 import { TEMPLATES } from '../templates';
 import { SingletonEditor } from './SingletonEditor';
 import { CollectionEditor } from './CollectionEditor';
+import { SectionExporter } from '../../../utils/SectionExporter';
 import { Button } from '../../../components/ui/Button';
-import { Trash2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Trash2, ChevronDown, ChevronUp, Download } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '../../../components/ui/Card';
 
 interface SectionContainerProps {
@@ -40,6 +41,9 @@ export function SectionContainer({ section, onUpdate, onDelete }: SectionContain
                     <CardTitle className="text-base font-medium text-slate-800">{section.title}</CardTitle>
                 </div>
                 <div className="flex items-center gap-2">
+                    <Button variant="ghost" size="sm" className="text-slate-400 hover:text-indigo-600 h-8 w-8 p-0" title="Export to PDF" onClick={(e) => { e.stopPropagation(); SectionExporter.export(section); }}>
+                        <Download className="h-4 w-4" />
+                    </Button>
                     <Button variant="ghost" size="sm" className="text-red-400 hover:text-red-600 h-8 w-8 p-0" onClick={(e) => { e.stopPropagation(); handleDelete(); }}>
                         <Trash2 className="h-4 w-4" />
                     </Button>
