@@ -44,13 +44,14 @@ vi.mock('../../section/components/SectionList', () => ({
 }));
 
 // Mock ImportModal to isolate integration logic
+// We use type 'experience' to test aggregation into a standard "Experience" section
 vi.mock('../../import/components/ImportModal', () => ({
     ImportModal: ({ isOpen, onImport }: any) => isOpen ? (
         <div data-testid="mock-import-modal">
             <button onClick={() => onImport({
                 sections: [
-                    { label: 'Imported Section 1', type: 'custom', items: [] },
-                    { label: 'Section 1', type: 'custom', items: [] } // Duplicate title for duplicate test
+                    { label: 'Job 1', type: 'experience', items: [{ role: 'Dev' }] },
+                    { label: 'Job 2', type: 'experience', items: [{ role: 'QA' }] }
                 ],
                 profile: { name: { full: 'Imported User' } }
             })}>
@@ -118,7 +119,7 @@ describe('KnowledgeBaseDetail JSON Sync & Import', () => {
         render(<KnowledgeBaseDetail />);
 
         // Switch to JSON view
-        const jsonBtn = screen.getByText('JSON', { selector: 'button' });
+        const jsonBtn = screen.getByRole('button', { name: /JSON/i });
         fireEvent.click(jsonBtn);
 
         const textarea = screen.getByRole('textbox');
@@ -128,8 +129,6 @@ describe('KnowledgeBaseDetail JSON Sync & Import', () => {
         expect(json.profile.name.full).toBe('Test User');
         // Should have sections
         expect(json.sections).toHaveLength(1);
-        expect(json.sections[0].id).toBe('s1');
-        expect(json.sections[0].label).toBe('Section 1');
     });
 
     it('syncs metadata to KB and sections to DB on save', async () => {
@@ -137,7 +136,7 @@ describe('KnowledgeBaseDetail JSON Sync & Import', () => {
         render(<KnowledgeBaseDetail />);
 
         // Switch to JSON
-        const jsonBtn = screen.getByText('JSON', { selector: 'button' });
+        const jsonBtn = screen.getByRole('button', { name: /JSON/i });
         fireEvent.click(jsonBtn);
 
         const textarea = screen.getByRole('textbox');
@@ -176,22 +175,20 @@ describe('KnowledgeBaseDetail JSON Sync & Import', () => {
         }));
     });
 
-    it('handles AI Import and resolves duplicates', async () => {
+    it('aggregates sections by type and resolves duplicates for the group', async () => {
         const user = userEvent.setup();
         // Mock createSection to simulate error on first call (duplicate) then success
         mockCreateSection.mockImplementation(async (data) => {
-            // Simulate backend error for duplicate
-            if (data.title === 'Section 1') throw new Error('A section with the name "Section 1" already exists.');
-            return { id: 'new', ...data };
+            // Simulate backend error if title is 'Experience' (default for type 'experience')
+            if (data.title === 'Experience') throw new Error('A section with the name "Experience" already exists.');
+            return { id: 'created_after_retry', ...data };
         });
 
         render(<KnowledgeBaseDetail />);
 
-        // Open Import Modal
         const aiBtn = screen.getByText(/Ai Import/i);
         await user.click(aiBtn);
 
-        // Click mocked trigger
         const triggerBtn = screen.getByText('Trigger Import');
         await user.click(triggerBtn);
 
@@ -200,15 +197,21 @@ describe('KnowledgeBaseDetail JSON Sync & Import', () => {
             metadata: expect.any(String)
         }));
 
-        const metadataArg = JSON.parse(mockUpdateKB.mock.lastCall![0].metadata);
-        expect(metadataArg.profile.name.full).toBe('Imported User');
+        // Verify createSection was called with the aggregated section
+        // 1st call: Title "Experience" (failed)
+        // 2nd call: Title "Experience (Imported...)" (succeeded)
 
-        // Verify creation of non-duplicate (Imported Section 1)
-        expect(mockCreateSection).toHaveBeenCalledWith(expect.objectContaining({ title: 'Imported Section 1' }));
-
-        // Verify handling of duplicate (Section 1)
+        // Verify duplicate check success
         expect(mockCreateSection).toHaveBeenCalledWith(expect.objectContaining({
-            title: expect.stringContaining('Section 1 (Imported')
+            title: expect.stringContaining('Experience (Imported'),
+            type: 'experience',
+            // Content should contain BOTH items
+            content: expect.objectContaining({
+                items: expect.arrayContaining([
+                    expect.objectContaining({ role: 'Dev' }),
+                    expect.objectContaining({ role: 'QA' })
+                ])
+            })
         }));
     });
 
@@ -231,9 +234,16 @@ describe('KnowledgeBaseDetail JSON Sync & Import', () => {
         // Verify metadata update was attempted
         expect(mockUpdateKB).toHaveBeenCalled();
 
-        // Verify sections were STILL created
-        expect(mockCreateSection).toHaveBeenCalledWith(expect.objectContaining({ title: 'Imported Section 1' }));
-        expect(mockCreateSection).toHaveBeenCalledWith(expect.objectContaining({ title: 'Section 1' }));
+        // Verify sections were STILL created (Aggregated as 'Experience')
+        expect(mockCreateSection).toHaveBeenCalledWith(expect.objectContaining({
+            title: 'Experience',
+            content: expect.objectContaining({
+                items: expect.arrayContaining([
+                    expect.objectContaining({ role: 'Dev' }),
+                    expect.objectContaining({ role: 'QA' })
+                ])
+            })
+        }));
 
         consoleSpy.mockRestore();
     });

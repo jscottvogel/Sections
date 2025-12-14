@@ -37,29 +37,70 @@ export function KnowledgeBaseDetail() {
             }
 
             // 2. Append New Sections
-            // Process sequentially to handle duplicates better
-            for (const s of importedSections) {
-                const { id, label, type, order, ...restContent } = s;
+            // Group by type to create unified sections (e.g. one "Experience" section with multiple items)
+            const typeGroups = new Map<string, { label: string, type: string, items: any[] }>();
 
+            for (const s of importedSections) {
+                const type = s.type || 'custom';
+                // Use the type as the key. 
+                // We default the label to the capitalized type if it's a standard type, 
+                // or keep the first label found if it seems custom.
+                // Actually, standardizing the label to the Type Name is safer for grouping.
+                // e.g. type 'experience' -> Label 'Experience'
+
+                if (!typeGroups.has(type)) {
+                    // Capitalize type for the label, or use the provided label if it's the first one
+                    // Let's use a mapping for nice labels
+                    const defaultLabels: Record<string, string> = {
+                        experience: 'Experience',
+                        education: 'Education',
+                        projects: 'Projects',
+                        skills: 'Skills',
+                        custom: s.label || 'Custom Section'
+                    };
+                    const groupLabel = defaultLabels[type.toLowerCase()] || (type.charAt(0).toUpperCase() + type.slice(1));
+
+                    typeGroups.set(type, {
+                        label: groupLabel,
+                        type: type,
+                        items: []
+                    });
+                }
+
+                // Extract items. If the section structure has 'items', use them. 
+                // If it's a flat object (like some parsed data might be?), wrap it.
+                // Our Parser returns { items: [...] } usually.
+                const contentItems = Array.isArray(s.items) ? s.items :
+                    (s.content && Array.isArray(s.content.items)) ? s.content.items :
+                        []; // If no items found, maybe we shouldn't add it or add the whole object?
+
+                // If there are no items property, maybe the whole 'restContent' is the item?
+                // ResumeDocument type says sections have 'items'.
+
+                if (contentItems.length > 0) {
+                    typeGroups.get(type)!.items.push(...contentItems);
+                }
+            }
+
+            // Create sections from the groups
+            for (const group of typeGroups.values()) {
                 try {
-                    // Map JSON schema back to DB schema
                     await createSection({
-                        title: label || 'Imported Section',
-                        type: type || 'custom',
-                        content: restContent
+                        title: group.label,
+                        type: group.type,
+                        content: { items: group.items }
                     });
                 } catch (err: any) {
                     // Handle duplicates gracefully by appending a suffix
                     if (err.message && err.message.includes('already exists')) {
-                        console.warn(`Section "${label}" exists. Creating copy.`);
+                        console.warn(`Section "${group.label}" exists. Creating copy.`);
                         await createSection({
-                            title: `${label || 'Section'} (Imported ${new Date().toLocaleTimeString()})`,
-                            type: type || 'custom',
-                            content: restContent
+                            title: `${group.label} (Imported ${new Date().toLocaleTimeString()})`,
+                            type: group.type,
+                            content: { items: group.items }
                         });
                     } else {
-                        // Log other errors but try to continue
-                        console.error("Failed to create section:", err);
+                        console.error(`Failed to create section ${group.label}:`, err);
                     }
                 }
             }
