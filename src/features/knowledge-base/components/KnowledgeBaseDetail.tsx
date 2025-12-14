@@ -3,8 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useKnowledgeBase } from '../hooks/useKnowledgeBase';
 import { useSections } from '../../section/hooks/useSections';
 import { Button } from '../../../components/ui/Button';
-import { Loader2, ArrowLeft, Save, Code, AlertTriangle } from 'lucide-react';
+import { Loader2, ArrowLeft, Save, Code, AlertTriangle, Bot } from 'lucide-react';
 import { SectionList } from '../../section/components/SectionList';
+import { ImportModal } from '../../import/components/ImportModal';
 
 export function KnowledgeBaseDetail() {
     const { id } = useParams<{ id: string }>();
@@ -15,6 +16,31 @@ export function KnowledgeBaseDetail() {
     const [viewMode, setViewMode] = useState<'visual' | 'json'>('visual');
     const [jsonContent, setJsonContent] = useState('');
     const [isSyncing, setIsSyncing] = useState(false);
+
+    const [isImportOpen, setIsImportOpen] = useState(false);
+
+    const handleImportDocument = async (importedData: any) => {
+        // 1. Update Metadata
+        const { sections: importedSections, ...metadata } = importedData;
+
+        if (updateKB) {
+            await updateKB({ metadata });
+        }
+
+        // 2. Append Sections
+        // We do not delete existing sections, just append new ones.
+        await Promise.all(importedSections.map(async (s: any) => {
+            const { id, label, type, order, ...restContent } = s;
+            await createSection({
+                title: label || 'Imported Section',
+                type: type || 'custom',
+                content: restContent
+            });
+        }));
+
+        // Refresh
+        // Hooks update automatically
+    };
 
     // Update JSON content when switching to JSON mode or when sections change (if not currently editing)
     useEffect(() => {
@@ -42,7 +68,7 @@ export function KnowledgeBaseDetail() {
                         // Let's assume content spreads into the object for now for maximum flexibility, 
                         // OR we map explicitly.
                         // User Schema: { id, type, label, order, items: [...] }
-                        // DB Schema: { id, type, title, order, content: { items: [...] } }
+                        // DB Schema: { id, title, type, content: { items: [...] } }
                         // Let's flatten content for JSON view:
                         ...(typeof s.content === 'object' ? s.content : {}),
                     };
@@ -126,6 +152,11 @@ export function KnowledgeBaseDetail() {
 
     return (
         <div className="space-y-6">
+            <ImportModal
+                isOpen={isImportOpen}
+                onClose={() => setIsImportOpen(false)}
+                onImport={handleImportDocument}
+            />
             <div className="flex items-center justify-between border-b border-slate-200 pb-6">
                 <div className="flex items-center gap-4">
                     <Button variant="ghost" size="sm" onClick={() => navigate('/')}>
@@ -136,25 +167,31 @@ export function KnowledgeBaseDetail() {
                         <p className="text-slate-500">{knowledgeBase.description}</p>
                     </div>
                 </div>
-                <div className="flex items-center bg-slate-100 p-1 rounded-lg">
-                    <button
-                        onClick={() => setViewMode('visual')}
-                        className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${viewMode === 'visual' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-                            }`}
-                    >
-                        Visual
-                    </button>
-                    <button
-                        onClick={() => {
-                            setJsonContent(JSON.stringify(sections, null, 2));
-                            setViewMode('json');
-                        }}
-                        className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${viewMode === 'json' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-                            }`}
-                    >
-                        <Code className="w-4 h-4 inline mr-1.5" />
-                        JSON
-                    </button>
+                <div className="flex items-center gap-3">
+                    <Button onClick={() => setIsImportOpen(true)} className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-md">
+                        <Bot className="h-4 w-4 mr-2" />
+                        Ai Import
+                    </Button>
+                    <div className="flex items-center bg-slate-100 p-1 rounded-lg">
+                        <button
+                            onClick={() => setViewMode('visual')}
+                            className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${viewMode === 'visual' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                                }`}
+                        >
+                            Visual
+                        </button>
+                        <button
+                            onClick={() => {
+                                setJsonContent(JSON.stringify(sections, null, 2));
+                                setViewMode('json');
+                            }}
+                            className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${viewMode === 'json' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                                }`}
+                        >
+                            <Code className="w-4 h-4 inline mr-1.5" />
+                            JSON
+                        </button>
+                    </div>
                 </div>
             </div>
 
