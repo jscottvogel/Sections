@@ -17,12 +17,20 @@ export function SectionList({ knowledgeBaseId }: SectionListProps) {
     const handleAddCancel = () => setIsAdding(false);
 
     const handleAddType = async (template: SectionTemplateDef) => {
-        setIsAdding(false);
-        await createSection({
-            title: template.label,
-            type: template.type,
-            content: template.isCollection ? { items: [] } : {}
-        });
+        try {
+            setIsAdding(false);
+            await createSection({
+                title: template.label,
+                type: template.type,
+                content: template.isCollection ? { items: [] } : {}
+            });
+        } catch (error) {
+            console.error("Failed to create section:", error);
+            // Re-open the add menu so user can try again
+            setIsAdding(true);
+            // Ideally we'd show a toast here, but for now console error is better than crash
+            alert("Failed to create section. Check console for details.");
+        }
     };
 
     const availableTypes = Object.values(TEMPLATES);

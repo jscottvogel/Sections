@@ -63,6 +63,7 @@ export function useSections(knowledgeBaseId: string | undefined) {
             setSections(prev => [...prev, newSection]);
             return newSection;
         } catch (err: any) {
+            console.error("Error in createSection hook:", err);
             setError(err.message);
             throw err;
         }
