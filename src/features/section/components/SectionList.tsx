@@ -10,6 +10,11 @@ interface SectionListProps {
     onSectionCreated?: () => void;
 }
 
+/**
+ * Component to list all sections for a Knowledge Base.
+ * Allows creating new sections from templates.
+ * Triggers onSectionCreated callback when a new section is added (useful for sidebar updates).
+ */
 export function SectionList({ knowledgeBaseId, onSectionCreated }: SectionListProps) {
     const { sections, loading, createSection, updateSection, deleteSection } = useSections(knowledgeBaseId);
     const [isAdding, setIsAdding] = useState(false);

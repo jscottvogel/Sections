@@ -132,8 +132,8 @@ export const TEMPLATES: Record<SectionType, SectionTemplateDef> = {
         isCollection: true, // Default to collection for flexibility, or we treat broadly
         itemLabel: 'Item',
         fields: [
-            { name: 'title', label: 'Title', type: 'text' },
-            { name: 'content', label: 'Content', type: 'textarea' }
+            { name: 'name', label: 'Name', type: 'text', placeholder: 'e.g. API Key' },
+            { name: 'value', label: 'Value', type: 'text', placeholder: 'e.g. 123-abc' }
         ]
     }
 };

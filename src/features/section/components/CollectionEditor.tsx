@@ -44,13 +44,7 @@ export function CollectionEditor({ section, template, onUpdate }: CollectionEdit
 
     const allFields = [...template.fields, ...customFields];
 
-    const getSummary = (item: any) => {
-        // Try to find reasonable summary fields
-        const title = item.role || item.institution || item.title || item.name || item.category || 'Item';
-        const subtitle = item.company || item.degree || item.organization || item.issuer || '';
-        const date = item.startDate ? `${item.startDate} - ${item.endDate || 'Present'}` : (item.date || '');
-        return { title, subtitle, date };
-    };
+
 
     if (isAdding || editingIndex !== null) {
         const initialValues = editingIndex !== null ? items[editingIndex] : {};
@@ -74,18 +68,21 @@ export function CollectionEditor({ section, template, onUpdate }: CollectionEdit
             )}
 
             {items.map((item: any, idx: number) => {
-                const { title, subtitle, date } = getSummary(item);
+                // Generic renderer: Show all populated fields
                 return (
-                    <div key={idx} className="flex items-center justify-between p-3 bg-white border border-slate-100 rounded-md shadow-sm hover:border-indigo-100 transition-colors group">
-                        <div>
-                            <div className="font-medium text-slate-800">{title}</div>
-                            {(subtitle || date) && (
-                                <div className="text-sm text-slate-500">
-                                    {subtitle} {subtitle && date && '•'} {date}
-                                </div>
-                            )}
+                    <div key={idx} className="flex items-start justify-between p-3 bg-white border border-slate-100 rounded-md shadow-sm hover:border-indigo-100 transition-colors group">
+                        <div className="space-y-1 flex-1">
+                            {allFields.map(field => {
+                                const value = item[field.name];
+                                if (!value) return null;
+                                return (
+                                    <div key={field.name} className="text-sm">
+                                        <span className="font-semibold text-slate-700">{field.label}:</span> <span className="text-slate-600">{value}</span>
+                                    </div>
+                                );
+                            })}
                         </div>
-                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-4">
                             <Button variant="ghost" size="sm" onClick={() => setEditingIndex(idx)}>
                                 <Pencil className="h-3.5 w-3.5" />
                             </Button>

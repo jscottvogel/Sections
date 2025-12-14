@@ -83,4 +83,28 @@ describe('useSections Hook', () => {
             content: JSON.stringify({ some: 'data' })
         }));
     });
+    it('prevents creating duplicate section names', async () => {
+        const existing = { id: '1', title: 'Skills', type: 'custom', content: '{}' };
+        mockClient.models.Section.list.mockResolvedValue({ data: [existing], errors: null });
+
+        const { result } = renderHook(() => useSections('kb-123'));
+        await waitFor(() => expect(result.current.loading).toBe(false));
+
+        await expect(
+            result.current.createSection({ title: 'skills', type: 'custom' }) // Case-insensitive check
+        ).rejects.toThrow('A section with the name "skills" already exists');
+    });
+
+    it('prevents renaming to a duplicate section name', async () => {
+        const s1 = { id: '1', title: 'Skills', type: 'custom', content: '{}' };
+        const s2 = { id: '2', title: 'Experience', type: 'custom', content: '{}' };
+        mockClient.models.Section.list.mockResolvedValue({ data: [s1, s2], errors: null });
+
+        const { result } = renderHook(() => useSections('kb-123'));
+        await waitFor(() => expect(result.current.loading).toBe(false));
+
+        await expect(
+            result.current.updateSection('2', { title: 'Skills' })
+        ).rejects.toThrow('A section with the name "Skills" already exists');
+    });
 });

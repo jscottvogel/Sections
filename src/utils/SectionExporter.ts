@@ -1,8 +1,14 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import type { Section } from '../types';
+
 import { TEMPLATES, type FieldDefinition } from '../features/section/templates';
 
+/**
+ * Utility to generate PDF exports for Sections.
+ * Supports different layouts for Collection (Table) and Singleton (Key-Value) types.
+ * Handles custom fields dynamically.
+ */
 export const SectionExporter = {
     export: (section: Section) => {
         const doc = new jsPDF();

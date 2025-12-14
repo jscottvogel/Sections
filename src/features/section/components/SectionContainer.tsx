@@ -15,6 +15,11 @@ interface SectionContainerProps {
     onDelete: (id: string) => Promise<void>;
 }
 
+/**
+ * Container component for an individual section.
+ * Handles display mode (collapsed/expanded), renaming, PDF export, and deletion.
+ * Delegates content editing to specific editors (Singleton/Collection).
+ */
 export function SectionContainer({ section, onUpdate, onDelete }: SectionContainerProps) {
     const [expanded, setExpanded] = useState(true);
     const [isEditingTitle, setIsEditingTitle] = useState(false);
