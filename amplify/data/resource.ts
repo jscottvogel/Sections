@@ -1,5 +1,7 @@
 import { type ClientSchema, a, defineData } from '@aws-amplify/backend';
 
+import { parseResume } from '../functions/parseResume/resource';
+
 const schema = a.schema({
   KnowledgeBase: a.model({
     title: a.string().default('My Knowledge Base'),
@@ -16,6 +18,13 @@ const schema = a.schema({
     content: a.json(), // Structured data based on type
     order: a.integer(),
   }).authorization(allow => [allow.owner()]),
+
+  parseResume: a
+    .query()
+    .arguments({ resumeText: a.string().required() })
+    .returns(a.json())
+    .handler(a.handler.function(parseResume))
+    .authorization(allow => [allow.authenticated()]),
 });
 
 export type Schema = ClientSchema<typeof schema>;
