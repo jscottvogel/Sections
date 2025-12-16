@@ -156,13 +156,16 @@ export function ImportModal({ isOpen, onClose, onImport }: ImportModalProps) {
                         <Button variant="ghost" onClick={onClose}>Cancel</Button>
                     )}
                     {step === 'review' && (
-                        <>
-                            <Button variant="ghost" onClick={reset} disabled={isImporting}>Back</Button>
-                            <Button onClick={handleConfirmImport} disabled={isImporting}>
-                                {isImporting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                {isImporting ? 'Importing...' : 'Import Data'}
-                            </Button>
-                        </>
+                        <div className="flex flex-col gap-2 w-full">
+                            {error && <p className="text-sm text-red-500 text-center">{error}</p>}
+                            <div className="flex justify-end gap-2">
+                                <Button variant="ghost" onClick={reset} disabled={isImporting}>Back</Button>
+                                <Button onClick={handleConfirmImport} disabled={isImporting}>
+                                    {isImporting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    {isImporting ? 'Importing...' : 'Import Data'}
+                                </Button>
+                            </div>
+                        </div>
                     )}
                 </DialogFooter>
             </DialogContent>

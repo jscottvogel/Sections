@@ -5,7 +5,16 @@ import { DocumentParser } from '../services/DocumentParser';
 import type { ResumeDocument } from '../../../types';
 
 // Mock the DocumentParser
-vi.mock('../services/DocumentParser');
+vi.mock('../services/DocumentParser', () => ({
+    DocumentParser: {
+        parse: vi.fn()
+    }
+}));
+
+// Mock Amplify
+vi.mock('aws-amplify/data', () => ({
+    generateClient: () => ({})
+}));
 
 const mockParsedData: ResumeDocument = {
     schema_version: '1.0',
