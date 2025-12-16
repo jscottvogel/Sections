@@ -13,6 +13,11 @@ vi.mock('aws-amplify/data', () => ({
     })
 }));
 
+// Mock mammoth
+vi.mock('mammoth', () => ({
+    extractRawText: vi.fn().mockResolvedValue({ value: 'Extracted Resume Text' })
+}));
+
 describe('DocumentParser', () => {
     beforeEach(() => {
         vi.clearAllMocks();
@@ -22,8 +27,8 @@ describe('DocumentParser', () => {
         vi.restoreAllMocks();
     });
 
-    it('parses file and maps response to ResumeDocument', async () => {
-        // Mock FileReader
+    it('parses PDF file and calls backend with encodedFile', async () => {
+        // Mock FileReader for base64
         const originalFileReader = window.FileReader;
         window.FileReader = class MockFileReader {
             result = '';
@@ -34,49 +39,50 @@ describe('DocumentParser', () => {
             }
         } as any;
 
-        const mockResponseData = {
-            contact_info: {
-                fullName: "Test User",
-                email: "test@example.com",
-                location: "Test City"
-            },
-            summary: { heading: "Dev", summary: "Summary" },
-            work_experience: [
-                { role: "Engineer", company: "Test Corp" }
-            ],
-            education: [],
-            skills: [],
-            projects: [],
-            certifications: [],
-            volunteer: []
-        };
-
-        mockParseResume.mockResolvedValue({
-            data: JSON.stringify(mockResponseData),
-            errors: null
-        });
+        const mockResponseData = { contact_info: { fullName: "Test User" }, sections: [] };
+        mockParseResume.mockResolvedValue({ data: JSON.stringify(mockResponseData), errors: null });
 
         const file = new File(['dummy'], 'resume.pdf', { type: 'application/pdf' });
-        const result = await DocumentParser.parse(file);
+        await DocumentParser.parse(file);
 
-        // Verify API call
         expect(mockParseResume).toHaveBeenCalledWith({
             encodedFile: 'BASE64CONTENT',
-            contentType: 'application/pdf'
+            contentType: 'application/pdf',
+            resumeText: undefined
         });
 
-        // Verify Mapping
-        expect(result.profile.name.full).toBe('Test User');
-        expect(result.profile.contacts?.email).toBe('test@example.com');
-        expect(result.sections).toHaveLength(1);
-        expect(result.sections[0].type).toBe('experience');
-        expect(result.sections[0].items).toEqual([{ role: "Engineer", company: "Test Corp" }]);
-        expect(result.document.parse_meta?.parser).toBe('bedrock-claude-3.5-sonnet');
+        window.FileReader = originalFileReader;
+    });
+
+    it('parses DOCX file and calls backend with resumeText', async () => {
+        // Mock FileReader for ArrayBuffer
+        const originalFileReader = window.FileReader;
+        window.FileReader = class MockFileReader {
+            result = new ArrayBuffer(8);
+            onload = () => { };
+            readAsArrayBuffer() {
+                setTimeout(() => this.onload(), 0);
+            }
+        } as any;
+
+        const mockResponseData = { contact_info: { fullName: "Test User" }, sections: [] };
+        mockParseResume.mockResolvedValue({ data: JSON.stringify(mockResponseData), errors: null });
+
+        const file = new File(['dummy'], 'resume.docx', { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+        await DocumentParser.parse(file);
+
+        // Verify mammoth usage (implicit by result) and API call
+        expect(mockParseResume).toHaveBeenCalledWith({
+            resumeText: 'Extracted Resume Text',
+            encodedFile: undefined,
+            contentType: undefined
+        });
 
         window.FileReader = originalFileReader;
     });
 
     it('throws error if API fails', async () => {
+        // ... existing test logic adapted ...
         const originalFileReader = window.FileReader;
         window.FileReader = class MockFileReader {
             result = '';

@@ -1,6 +1,7 @@
 import type { ResumeDocument, ResumeSection } from "../../../types";
 import { generateClient } from 'aws-amplify/data';
 import type { Schema } from "../../../../amplify/data/resource";
+import * as mammoth from 'mammoth';
 
 const client = generateClient<Schema>();
 
@@ -9,13 +10,29 @@ const client = generateClient<Schema>();
  */
 export class DocumentParser {
     static async parse(file: File): Promise<ResumeDocument> {
-        // 1. Convert file to base64
-        const encodedFile = await this.fileToBase64(file);
+        let resumeText: string | undefined;
+        let encodedFile: string | undefined;
+        let contentType: string | undefined;
+
+        if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || file.name.endsWith('.docx')) {
+            // Handle DOCX -> Extract Text
+            const arrayBuffer = await this.fileToArrayBuffer(file);
+            const result = await mammoth.extractRawText({ arrayBuffer });
+            resumeText = result.value;
+        } else if (file.type === 'text/plain') {
+            // Handle Text File
+            resumeText = await this.fileToText(file);
+        } else {
+            // Handle PDF (and others supported by Bedrock) -> Base64
+            encodedFile = await this.fileToBase64(file);
+            contentType = file.type;
+        }
 
         // 2. Call backend API
         const { data: response, errors } = await client.queries.parseResume({
+            resumeText,
             encodedFile,
-            contentType: file.type
+            contentType
         });
 
         if (errors) {
@@ -26,6 +43,24 @@ export class DocumentParser {
 
         // 3. Map to ResumeDocument structure
         return this.mapToResumeDocument(parsedJson, file);
+    }
+
+    private static fileToArrayBuffer(file: File): Promise<ArrayBuffer> {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsArrayBuffer(file);
+            reader.onload = () => resolve(reader.result as ArrayBuffer);
+            reader.onerror = error => reject(error);
+        });
+    }
+
+    private static fileToText(file: File): Promise<string> {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsText(file);
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = error => reject(error);
+        });
     }
 
     private static fileToBase64(file: File): Promise<string> {

@@ -38,6 +38,7 @@ export const handler = async (event: AppSyncResolverEvent<any>) => {
                     }
                 ]
             });
+            console.log(messages);
         } else {
             // Text only logic
             messages.push({
@@ -49,6 +50,7 @@ export const handler = async (event: AppSyncResolverEvent<any>) => {
                     }
                 ]
             });
+            console.log(messages);
         }
 
 

@@ -2,9 +2,12 @@ import { useState } from 'react';
 import type { Schema } from '../../../amplify/data/resource';
 import { generateClient } from 'aws-amplify/data';
 
+import * as mammoth from 'mammoth';
+
 const client = generateClient<Schema>();
 
 export const ResumeParser = () => {
+    // ... state ...
     const [mode, setMode] = useState<'text' | 'file'>('file');
     const [resumeText, setResumeText] = useState('');
     const [file, setFile] = useState<File | null>(null);
@@ -32,6 +35,24 @@ export const ResumeParser = () => {
         });
     };
 
+    const convertToArrayBuffer = (file: File): Promise<ArrayBuffer> => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsArrayBuffer(file);
+            reader.onload = () => resolve(reader.result as ArrayBuffer);
+            reader.onerror = error => reject(error);
+        });
+    };
+
+    const convertToString = (file: File): Promise<string> => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsText(file);
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = error => reject(error);
+        });
+    };
+
     const handleParse = async () => {
         if (mode === 'text' && !resumeText) return;
         if (mode === 'file' && !file) return;
@@ -43,14 +64,23 @@ export const ResumeParser = () => {
         try {
             let encodedFile: string | undefined;
             let contentType: string | undefined;
+            let extractedText: string | undefined;
 
             if (mode === 'file' && file) {
-                encodedFile = await convertToBase64(file);
-                contentType = file.type;
+                if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || file.name.endsWith('.docx')) {
+                    const arrayBuffer = await convertToArrayBuffer(file);
+                    const result = await mammoth.extractRawText({ arrayBuffer });
+                    extractedText = result.value;
+                } else if (file.type === 'text/plain') {
+                    extractedText = await convertToString(file);
+                } else {
+                    encodedFile = await convertToBase64(file);
+                    contentType = file.type;
+                }
             }
 
             const { data: response, errors } = await client.queries.parseResume({
-                resumeText: mode === 'text' ? resumeText : undefined,
+                resumeText: mode === 'text' ? resumeText : extractedText,
                 encodedFile,
                 contentType
             });

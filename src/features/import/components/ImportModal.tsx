@@ -96,7 +96,7 @@ export function ImportModal({ isOpen, onClose, onImport }: ImportModalProps) {
                                     type="file"
                                     ref={fileInputRef}
                                     className="hidden"
-                                    accept=".pdf,.docx,.txt"
+                                    accept=".pdf,.docx,.doc,.txt"
                                     onChange={handleFileSelect}
                                     data-testid="file-upload"
                                 />
