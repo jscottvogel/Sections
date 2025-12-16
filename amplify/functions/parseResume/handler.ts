@@ -38,7 +38,7 @@ export const handler = async (event: AppSyncResolverEvent<any>) => {
                     }
                 ]
             });
-            console.log(messages);
+            console.log("Processing encoded file...");
         } else {
             // Text only logic
             messages.push({
@@ -50,7 +50,7 @@ export const handler = async (event: AppSyncResolverEvent<any>) => {
                     }
                 ]
             });
-            console.log(messages);
+            console.log("Processing text input...");
         }
 
 
