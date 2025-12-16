@@ -44,9 +44,11 @@ export class DocumentParser {
 
         try {
             // Response is now a stringified JSON containing { rawResponse, cleanedJson }
-            const wrapper = typeof response === 'string' ? JSON.parse(response) : response;
+            let wrapper: any = response;
+            if (typeof wrapper === 'string') wrapper = JSON.parse(wrapper);
+            if (typeof wrapper === 'string') wrapper = JSON.parse(wrapper); // Double parse safety
 
-            if (wrapper.cleanedJson) {
+            if (wrapper && typeof wrapper === 'object' && wrapper.cleanedJson) {
                 rawResponse = wrapper.rawResponse;
                 parsedJson = JSON.parse(wrapper.cleanedJson);
             } else {
