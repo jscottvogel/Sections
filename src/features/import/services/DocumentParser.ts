@@ -1,77 +1,111 @@
-import type { ResumeDocument } from "../../../types";
+import type { ResumeDocument, ResumeSection } from "../../../types";
+import { generateClient } from 'aws-amplify/data';
+import type { Schema } from "../../../../amplify/data/resource";
+
+const client = generateClient<Schema>();
 
 /**
- * Service to handle document parsing.
- * Currently mocks the AI agent interaction.
+ * Service to handle document parsing using the AI Agent.
  */
 export class DocumentParser {
-    static async parse(_file: File): Promise<ResumeDocument> {
-        return new Promise((resolve) => {
-            // Simulate AI processing delay
-            setTimeout(() => {
-                resolve(MOCK_RESUME_DATA);
-            }, 3000);
+    static async parse(file: File): Promise<ResumeDocument> {
+        // 1. Convert file to base64
+        const encodedFile = await this.fileToBase64(file);
+
+        // 2. Call backend API
+        const { data: response, errors } = await client.queries.parseResume({
+            encodedFile,
+            contentType: file.type
+        });
+
+        if (errors) {
+            throw new Error(errors[0].message);
+        }
+
+        const parsedJson = typeof response === 'string' ? JSON.parse(response) : response;
+
+        // 3. Map to ResumeDocument structure
+        return this.mapToResumeDocument(parsedJson, file);
+    }
+
+    private static fileToBase64(file: File): Promise<string> {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => {
+                const result = reader.result as string;
+                // remove prefix
+                const base64 = result.split(',')[1];
+                resolve(base64);
+            };
+            reader.onerror = error => reject(error);
         });
     }
-}
 
-const MOCK_RESUME_DATA: ResumeDocument = {
-    schema_version: "1.0.0",
-    document: {
-        resume_id: "mock-id-123",
-        language: "en",
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        source: {
-            type: "pdf",
-            filename: "resume.pdf",
-            page_count: 2
-        }
-    },
-    profile: {
-        name: { full: "Alex Doe", first: "Alex", last: "Doe" },
-        headline: "Senior Software Engineer",
-        summary: "Full stack developer with 8 years of experience building scalable web applications.",
-        location: { city: "San Francisco", region: "CA", country: "USA" },
-        contacts: {
-            email: "alex@example.com",
-            phone: "+1 (555) 012-3456",
-            linkedin: "https://linkedin.com/in/alexdoe"
-        }
-    },
-    sections: [
-        {
-            id: "exp-1",
-            type: "experience",
-            label: "Senior Developer at Tech Corp",
-            order: 0,
-            items: [
-                {
-                    title: "Senior Developer",
-                    organization: "Tech Corp",
-                    date_start: "2020-01",
-                    date_end: "Present",
-                    description: "Leading frontend development for core products.",
-                    highlights: [
-                        "Improved load times by 40%",
-                        "Mentored 5 junior developers"
-                    ]
+    private static mapToResumeDocument(data: any, file: File): ResumeDocument {
+        const sections: ResumeSection[] = [];
+        let sectionCounter = 0;
+
+        // Helper to add section
+        const addSection = (type: string, label: string, items: any[]) => {
+            if (items && items.length > 0) {
+                sections.push({
+                    id: `sec-${Date.now()}-${sectionCounter++}`,
+                    type,
+                    label,
+                    order: sectionCounter,
+                    items
+                });
+            }
+        };
+
+        // Map specific array fields to sections
+        addSection('experience', 'Work Experience', data.work_experience);
+        addSection('education', 'Education', data.education);
+        addSection('skills', 'Skills', data.skills);
+        addSection('projects', 'Projects', data.projects);
+        addSection('certifications', 'Certifications', data.certifications);
+        addSection('volunteer', 'Volunteer', data.volunteer);
+
+        return {
+            schema_version: "1.0.0",
+            document: {
+                resume_id: crypto.randomUUID(),
+                language: "en",
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+                source: {
+                    type: file.type,
+                    filename: file.name,
+                    page_count: 0
+                },
+                parse_meta: {
+                    parser: "bedrock-claude-3.5-sonnet",
+                    model: "anthropic.claude-3-5-sonnet-20240620-v1:0"
                 }
-            ]
-        },
-        {
-            id: "edu-1",
-            type: "education",
-            label: "BS Computer Science",
-            order: 1,
-            items: [
-                {
-                    institution: "University of Technology",
-                    degree: "Bachelor of Science",
-                    field: "Computer Science",
-                    date_end: "2019-05"
+            },
+            profile: {
+                name: {
+                    full: data.contact_info?.fullName || "Unknown Name",
+                    // Simple split for first/last if needed, or leave optional
+                },
+                headline: data.summary?.heading,
+                summary: data.summary?.summary,
+                location: {
+                    // parsing "City, State" string is complex, leaving explicit fields empty or putting full string in one if schema allowed. 
+                    // Schema has city, region, country.
+                    // We'll put the raw string in city if we have to, or leave blank.
+                    // prompt returns "location" string.
+                    city: data.contact_info?.location
+                },
+                contacts: {
+                    email: data.contact_info?.email,
+                    phone: data.contact_info?.phone,
+                    linkedin: data.contact_info?.linkedin,
+                    other_links: data.contact_info?.portfolio ? [{ label: "Portfolio", url: data.contact_info.portfolio }] : []
                 }
-            ]
-        }
-    ]
-};
+            },
+            sections
+        };
+    }
+}
