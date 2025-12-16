@@ -75,8 +75,16 @@ export const handler = async (event: AppSyncResolverEvent<any>) => {
         // Extract the content from Claude's response structure
         let extractedJson = result.content[0].text;
 
-        // Clean up any markdown code blocks if the model included them despite instructions
-        extractedJson = extractedJson.replace(/```json\n?|\n?```/g, "").trim();
+        // Robust JSON extraction: Find first '{' and last '}'
+        const firstOpen = extractedJson.indexOf('{');
+        const lastClose = extractedJson.lastIndexOf('}');
+
+        if (firstOpen !== -1 && lastClose !== -1 && lastClose > firstOpen) {
+            extractedJson = extractedJson.substring(firstOpen, lastClose + 1);
+        } else {
+            // Fallback to regex if braces not found (unlikely for valid JSON)
+            extractedJson = extractedJson.replace(/```json\n?|\n?```/g, "").trim();
+        }
 
         return extractedJson;
 

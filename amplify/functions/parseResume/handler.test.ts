@@ -105,4 +105,31 @@ describe('handler', () => {
         const event = { arguments: { resumeText } } as any;
         await expect(handler(event)).rejects.toThrow('Error parsing resume: Bedrock Error');
     });
+
+    it('should extract JSON correctly even with preamble', async () => {
+        const mockEvent = {
+            arguments: {
+                encodedFile: "dummyBase64",
+                contentType: "application/pdf"
+            }
+        };
+
+        const mockResponse = {
+            content: [
+                { text: "Here is the JSON you requested:\n\n{ \"contact_info\": { \"fullName\": \"John Doe\" } }\n\nHope this helps!" }
+            ]
+        };
+
+        const encodedResponse = new TextEncoder().encode(JSON.stringify(mockResponse));
+
+        // Mock send method
+        mockSend.mockResolvedValueOnce({
+            body: encodedResponse
+        });
+
+        const result = await handler(mockEvent as any);
+        const parsedContext = JSON.parse(result);
+
+        expect(parsedContext).toEqual({ contact_info: { fullName: "John Doe" } });
+    });
 });

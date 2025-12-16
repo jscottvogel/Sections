@@ -50,7 +50,10 @@ export function ImportModal({ isOpen, onClose, onImport }: ImportModalProps) {
             setParsedData(result);
             setStep('review');
         } catch (err: any) {
-            setError("Failed to analyze document: " + err.message);
+            console.error("Resume Analysis Failed:", err);
+            // Enhanced error message for UI
+            const msg = err.message || "Unknown error";
+            setError(`Failed to analyze document. ${msg}. Check console for details.`);
             setStep('upload');
         }
     };
