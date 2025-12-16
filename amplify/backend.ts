@@ -8,7 +8,7 @@ import { parseResume } from './functions/parseResume/resource';
  */
 import { PolicyStatement, Effect } from 'aws-cdk-lib/aws-iam';
 
-const backend = defineBackend({
+export const backend = defineBackend({
   auth,
   data,
   parseResume,
