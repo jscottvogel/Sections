@@ -102,6 +102,16 @@ export class DocumentParser {
         addSection('certifications', 'Certifications', data.certifications);
         addSection('volunteer', 'Volunteer', data.volunteer);
 
+        // Map custom sections
+        if (data.custom_sections && Array.isArray(data.custom_sections)) {
+            data.custom_sections.forEach((cs: any) => {
+                const heading = cs.heading || 'Custom Section';
+                // Sanitize type key to be alphanumeric only
+                const typeKey = heading.toLowerCase().replace(/[^a-z0-9]/g, '');
+                addSection(typeKey || 'custom', heading, cs.items);
+            });
+        }
+
         return {
             schema_version: "1.0.0",
             document: {

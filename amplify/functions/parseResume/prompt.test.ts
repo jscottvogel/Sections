@@ -22,4 +22,9 @@ describe('createPrompt', () => {
         expect(prompt).not.toContain("Resume Text:");
         expect(prompt).toContain("REQUIRED JSON STRUCTURE:");
     });
+
+    it('should include attached document instruction', () => {
+        const prompt = createPrompt();
+        expect(prompt).toContain('attached resume document (PDF/Image)');
+    });
 });

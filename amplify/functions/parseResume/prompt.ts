@@ -1,5 +1,5 @@
 export const createPrompt = (resumeText?: string) => `
-You are an expert Resume Parsing AI. Your job is to extract data from the resume and STRUCTURE IT EXACTLY according to the following JSON schema.
+You are an expert Resume Parsing AI. Your job is to extract data from the attached resume document (PDF/Image) or the text provided below, and STRUCTURE IT EXACTLY according to the following JSON schema.
 
 ${resumeText ? `Resume Text:\n${resumeText}` : ''}
 
@@ -68,6 +68,18 @@ REQUIRED JSON STRUCTURE:
       "startDate": "YYYY-MM-DD",
       "endDate": "YYYY-MM-DD",
       "description": "string"
+    }
+  ],
+  "custom_sections": [
+    {
+       "heading": "string (e.g. Publications, Awards, Languages)",
+       "items": [
+         {
+           "title": "string",
+           "description": "string",
+           "date": "string (optional)"
+         }
+       ]
     }
   ]
 }
