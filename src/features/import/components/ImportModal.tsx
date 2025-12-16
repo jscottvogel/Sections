@@ -136,11 +136,21 @@ export function ImportModal({ isOpen, onClose, onImport }: ImportModalProps) {
                                 <p><strong>Headline:</strong> {parsedData.profile.headline}</p>
                                 <div className="border-t border-slate-200 pt-2 mt-2">
                                     <p className="text-xs text-slate-500 uppercase font-semibold mb-1">Sections Detected</p>
-                                    <ul className="list-disc list-inside">
-                                        {parsedData.sections.map(s => (
-                                            <li key={s.id}>{s.label} <span className="text-xs text-slate-400">({s.type})</span></li>
-                                        ))}
-                                    </ul>
+                                    {parsedData.sections.length > 0 ? (
+                                        <ul className="list-disc list-inside">
+                                            {parsedData.sections.map(s => (
+                                                <li key={s.id}>{s.label} <span className="text-xs text-slate-400">({s.type})</span></li>
+                                            ))}
+                                        </ul>
+                                    ) : (
+                                        <div className="bg-amber-50 text-amber-800 p-2 rounded">
+                                            <p className="font-bold">No sections found.</p>
+                                            <p className="text-xs mt-1">Debug Info (Raw JSON):</p>
+                                            <pre className="text-xs overflow-auto max-h-40 bg-white p-2 border border-amber-200 mt-1">
+                                                {JSON.stringify(parsedData, null, 2)}
+                                            </pre>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>

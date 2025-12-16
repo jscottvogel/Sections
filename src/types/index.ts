@@ -43,6 +43,7 @@ export interface ResumeDocument {
             model: string;
             confidence_overall?: number;
             notes?: string;
+            _debug_notes?: string;
         };
     };
     profile: {

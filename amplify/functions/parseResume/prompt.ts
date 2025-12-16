@@ -5,6 +5,7 @@ ${resumeText ? `Resume Text:\n${resumeText}` : ''}
 
 REQUIRED JSON STRUCTURE:
 {
+  "_debug_notes": "string (Why you did or did not find data)",
   "contact_info": {
     "fullName": "string",
     "email": "string",

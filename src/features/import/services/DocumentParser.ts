@@ -126,7 +126,8 @@ export class DocumentParser {
                 },
                 parse_meta: {
                     parser: "bedrock-claude-3.5-sonnet",
-                    model: "anthropic.claude-3-5-sonnet-20240620-v1:0"
+                    model: "anthropic.claude-3-5-sonnet-20240620-v1:0",
+                    _debug_notes: data._debug_notes || "No notes provided"
                 }
             },
             profile: {
