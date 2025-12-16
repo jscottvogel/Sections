@@ -1,8 +1,7 @@
-export const createPrompt = (resumeText: string) => `
+export const createPrompt = (resumeText?: string) => `
 You are an expert Resume Parsing AI. Your job is to extract data from the resume and STRUCTURE IT EXACTLY according to the following JSON schema.
 
-Resume Text:
-${resumeText}
+${resumeText ? `Resume Text:\n${resumeText}` : ''}
 
 REQUIRED JSON STRUCTURE:
 {

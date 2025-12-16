@@ -21,7 +21,11 @@ const schema = a.schema({
 
   parseResume: a
     .query()
-    .arguments({ resumeText: a.string().required() })
+    .arguments({
+      resumeText: a.string(),
+      encodedFile: a.string(),
+      contentType: a.string()
+    })
     .returns(a.json())
     .handler(a.handler.function(parseResume))
     .authorization(allow => [allow.authenticated()]),

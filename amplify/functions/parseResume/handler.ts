@@ -8,32 +8,58 @@ import { createPrompt } from './prompt';
 
 export const handler = async (event: AppSyncResolverEvent<any>) => {
     try {
-        const resumeText = event.arguments?.resumeText;
+        const { resumeText, encodedFile, contentType } = event.arguments || {};
 
-        if (!resumeText) {
-            throw new Error("Missing resumeText in arguments");
+        if (!resumeText && !encodedFile) {
+            throw new Error("Missing resumeText or encodedFile in arguments");
         }
 
-        const prompt = createPrompt(resumeText);
+        const messages: any[] = [];
+
+        // If file is provided, add document block
+        if (encodedFile) {
+            if (!contentType) {
+                throw new Error("Missing contentType for encodedFile");
+            }
+            messages.push({
+                role: "user",
+                content: [
+                    {
+                        type: "document",
+                        source: {
+                            type: "base64",
+                            media_type: contentType,
+                            data: encodedFile
+                        }
+                    },
+                    {
+                        type: "text",
+                        text: createPrompt() // Instructions only
+                    }
+                ]
+            });
+        } else {
+            // Text only logic
+            messages.push({
+                role: "user",
+                content: [
+                    {
+                        type: "text",
+                        text: createPrompt(resumeText) // Instructions + embedded text
+                    }
+                ]
+            });
+        }
+
 
         const input = {
-            modelId: "anthropic.claude-3-5-sonnet-20240620-v1:0", // Ensure this model is enabled in your AWS account
+            modelId: "anthropic.claude-3-5-sonnet-20240620-v1:0",
             contentType: "application/json",
             accept: "application/json",
             body: JSON.stringify({
                 anthropic_version: "bedrock-2023-05-31",
                 max_tokens: 4096,
-                messages: [
-                    {
-                        role: "user",
-                        content: [
-                            {
-                                type: "text",
-                                text: prompt,
-                            },
-                        ],
-                    },
-                ],
+                messages: messages,
             }),
         };
 
@@ -50,10 +76,6 @@ export const handler = async (event: AppSyncResolverEvent<any>) => {
         // Clean up any markdown code blocks if the model included them despite instructions
         extractedJson = extractedJson.replace(/```json\n?|\n?```/g, "").trim();
 
-        // For AppSync, simply return the data. 
-        // If the return type in schema is JSON, we can return the JSON string or object. 
-        // Returning the raw string might be safer if the client expects to parse it. 
-        // But usually best to return a string if type is JSON.
         return extractedJson;
 
     } catch (error) {

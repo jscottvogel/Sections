@@ -19,6 +19,7 @@ describe('createPrompt', () => {
 
     it('should handle empty string gracefully', () => {
         const prompt = createPrompt("");
-        expect(prompt).toContain("Resume Text:\n\n");
+        expect(prompt).not.toContain("Resume Text:");
+        expect(prompt).toContain("REQUIRED JSON STRUCTURE:");
     });
 });

@@ -5,20 +5,54 @@ import { generateClient } from 'aws-amplify/data';
 const client = generateClient<Schema>();
 
 export const ResumeParser = () => {
+    const [mode, setMode] = useState<'text' | 'file'>('file');
     const [resumeText, setResumeText] = useState('');
+    const [file, setFile] = useState<File | null>(null);
     const [parsedData, setParsedData] = useState<any>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            setFile(e.target.files[0]);
+        }
+    };
+
+    const convertToBase64 = (file: File): Promise<string> => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => {
+                const result = reader.result as string;
+                // remove "data:application/pdf;base64," prefix
+                const base64 = result.split(',')[1];
+                resolve(base64);
+            };
+            reader.onerror = error => reject(error);
+        });
+    };
+
     const handleParse = async () => {
-        if (!resumeText) return;
+        if (mode === 'text' && !resumeText) return;
+        if (mode === 'file' && !file) return;
+
         setLoading(true);
         setError(null);
         setParsedData(null);
 
         try {
+            let encodedFile: string | undefined;
+            let contentType: string | undefined;
+
+            if (mode === 'file' && file) {
+                encodedFile = await convertToBase64(file);
+                contentType = file.type;
+            }
+
             const { data: response, errors } = await client.queries.parseResume({
-                resumeText
+                resumeText: mode === 'text' ? resumeText : undefined,
+                encodedFile,
+                contentType
             });
 
             if (errors) {
@@ -36,40 +70,65 @@ export const ResumeParser = () => {
     };
 
     return (
-        <div className="p-4 bg-white rounded-lg shadow" >
-            <h2 className="text-xl font-bold mb-4" > Resume Parser Agent </h2>
-            < textarea
-                className="w-full h-64 p-2 border border-gray-300 rounded mb-4"
-                placeholder="Paste resume text here..."
-                value={resumeText}
-                onChange={(e) => setResumeText(e.target.value)}
-            />
-            < button
-                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
+        <div className="p-4 bg-white rounded-lg shadow max-w-4xl mx-auto">
+            <h2 className="text-xl font-bold mb-4">Resume Parser Agent</h2>
+
+            <div className="mb-4 flex space-x-4">
+                <button
+                    className={`px-4 py-2 rounded ${mode === 'file' ? 'bg-blue-100 text-blue-700 font-bold' : 'bg-gray-100'}`}
+                    onClick={() => setMode('file')}
+                >
+                    Upload File
+                </button>
+                <button
+                    className={`px-4 py-2 rounded ${mode === 'text' ? 'bg-blue-100 text-blue-700 font-bold' : 'bg-gray-100'}`}
+                    onClick={() => setMode('text')}
+                >
+                    Paste Text
+                </button>
+            </div>
+
+            {mode === 'text' ? (
+                <textarea
+                    className="w-full h-64 p-2 border border-gray-300 rounded mb-4"
+                    placeholder="Paste resume text here..."
+                    value={resumeText}
+                    onChange={(e) => setResumeText(e.target.value)}
+                />
+            ) : (
+                <div className="mb-4 p-8 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center bg-gray-50">
+                    <input
+                        type="file"
+                        accept=".pdf,.doc,.docx,.txt"
+                        onChange={handleFileChange}
+                        className="mb-4"
+                    />
+                    <p className="text-sm text-gray-500">Supported formats: PDF, DOC, DOCX, TXT</p>
+                </div>
+            )}
+
+            <button
+                className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 disabled:opacity-50 w-full"
                 onClick={handleParse}
-                disabled={loading || !resumeText}
+                disabled={loading || (mode === 'text' ? !resumeText : !file)}
             >
                 {loading ? 'Parsing...' : 'Parse Resume'}
             </button>
 
-            {
-                error && (
-                    <div className="mt-4 p-2 bg-red-100 text-red-700 rounded" >
-                        Error: {error}
-                    </div>
-                )
-            }
+            {error && (
+                <div className="mt-4 p-2 bg-red-100 text-red-700 rounded">
+                    Error: {error}
+                </div>
+            )}
 
-            {
-                parsedData && (
-                    <div className="mt-4" >
-                        <h3 className="text-lg font-semibold mb-2" > Parsed Result: </h3>
-                        < pre className="bg-gray-100 p-4 rounded overflow-auto max-h-96 text-sm" >
-                            {JSON.stringify(parsedData, null, 2)}
-                        </pre>
+            {parsedData && (
+                <div className="mt-4">
+                    <h3 className="text-lg font-semibold mb-2">Parsed Result:</h3>
+                    <div className="bg-gray-100 p-4 rounded overflow-auto max-h-screen text-sm">
+                        <pre>{JSON.stringify(parsedData, null, 2)}</pre>
                     </div>
-                )
-            }
+                </div>
+            )}
         </div>
     );
 };
