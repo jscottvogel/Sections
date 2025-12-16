@@ -39,7 +39,28 @@ export class DocumentParser {
             throw new Error(errors[0].message);
         }
 
-        const parsedJson = typeof response === 'string' ? JSON.parse(response) : response;
+        let parsedJson;
+        let rawResponse = "No raw response captured";
+
+        try {
+            // Response is now a stringified JSON containing { rawResponse, cleanedJson }
+            const wrapper = typeof response === 'string' ? JSON.parse(response) : response;
+
+            if (wrapper.cleanedJson) {
+                rawResponse = wrapper.rawResponse;
+                parsedJson = JSON.parse(wrapper.cleanedJson);
+            } else {
+                // Fallback for backward compatibility or direct JSON
+                parsedJson = wrapper;
+            }
+        } catch (e: any) {
+            throw new Error("Failed to parse AI response: " + e.message);
+        }
+
+        // Inject raw response into debug notes if missing
+        if (!parsedJson._debug_notes) {
+            parsedJson._debug_notes = "Raw Output: " + rawResponse.substring(0, 500); // Truncate for sanity
+        }
 
         // 3. Map to ResumeDocument structure
         return this.mapToResumeDocument(parsedJson, file);

@@ -40,7 +40,12 @@ describe('DocumentParser', () => {
         } as any;
 
         const mockResponseData = { contact_info: { fullName: "Test User" }, sections: [] };
-        mockParseResume.mockResolvedValue({ data: JSON.stringify(mockResponseData), errors: null });
+        // Valid Wrapper Response
+        const wrappedResponse = {
+            rawResponse: "Here is your JSON",
+            cleanedJson: JSON.stringify(mockResponseData)
+        };
+        mockParseResume.mockResolvedValue({ data: JSON.stringify(wrappedResponse), errors: null });
 
         const file = new File(['dummy'], 'resume.pdf', { type: 'application/pdf' });
         await DocumentParser.parse(file);
@@ -66,7 +71,11 @@ describe('DocumentParser', () => {
         } as any;
 
         const mockResponseData = { contact_info: { fullName: "Test User" }, sections: [] };
-        mockParseResume.mockResolvedValue({ data: JSON.stringify(mockResponseData), errors: null });
+        const wrappedResponse = {
+            rawResponse: "Extracted Text",
+            cleanedJson: JSON.stringify(mockResponseData)
+        };
+        mockParseResume.mockResolvedValue({ data: JSON.stringify(wrappedResponse), errors: null });
 
         const file = new File(['dummy'], 'resume.docx', { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
         await DocumentParser.parse(file);

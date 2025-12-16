@@ -86,7 +86,10 @@ export const handler = async (event: AppSyncResolverEvent<any>) => {
             extractedJson = extractedJson.replace(/```json\n?|\n?```/g, "").trim();
         }
 
-        return extractedJson;
+        return JSON.stringify({
+            rawResponse: result.content[0].text,
+            cleanedJson: extractedJson
+        });
 
     } catch (error) {
         console.error("Error parsing resume:", error);
