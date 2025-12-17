@@ -14,10 +14,22 @@ const backend = defineBackend({
   parseResume,
 });
 
+// 1. Grant Bedrock access to the Lambda
 backend.parseResume.resources.lambda.addToRolePolicy(new PolicyStatement({
   effect: Effect.ALLOW,
   actions: ['bedrock:InvokeModel'],
   resources: ['arn:aws:bedrock:us-east-1::foundation-model/anthropic.claude-3-5-sonnet-20240620-v1:0'],
 }));
+
+// 2. Grant Authenticated Users access to invoke the Lambda directly (bypassing AppSync)
+const authenticatedUserRole = backend.auth.resources.authenticatedUserIamRole;
+backend.parseResume.resources.lambda.grantInvoke(authenticatedUserRole);
+
+// 3. Output the function name so the frontend can call it
+backend.addOutput({
+  custom: {
+    parseResumeFunctionName: backend.parseResume.resources.lambda.functionName,
+  },
+});
 
 export default backend;

@@ -1,9 +1,8 @@
 import type { ResumeDocument, ResumeSection } from "../../../types";
-import { generateClient } from 'aws-amplify/data';
-import type { Schema } from "../../../../amplify/data/resource";
 import * as mammoth from 'mammoth';
-
-const client = generateClient<Schema>();
+import { LambdaClient, InvokeCommand } from "@aws-sdk/client-lambda";
+import { fetchAuthSession } from "aws-amplify/auth";
+import outputs from "../../../../amplify_outputs.json";
 
 /**
  * Service to handle document parsing using the AI Agent.
@@ -28,40 +27,75 @@ export class DocumentParser {
             contentType = file.type;
         }
 
-        // 2. Call backend API
-        const { data: response, errors } = await client.queries.parseResume({
-            resumeText,
-            encodedFile,
-            contentType
+        // 2. Call backend Lambda directly (Bypassing AppSync 30s timeout)
+        const session = await fetchAuthSession();
+        if (!session.credentials) {
+            throw new Error("User must be authenticated to parse resume.");
+        }
+
+        const functionName = (outputs as any).custom?.parseResumeFunctionName;
+        if (!functionName) {
+            throw new Error("Parse Resume function name not found. Please deploy the backend updates.");
+        }
+
+        const lambdaClient = new LambdaClient({
+            region: outputs.auth.aws_region,
+            credentials: session.credentials
         });
 
-        if (errors) {
-            throw new Error(errors[0].message);
-        }
+        // Construct event that matches AppSync resolver structure so we don't need to change handler logic
+        const payload = {
+            arguments: {
+                resumeText,
+                encodedFile,
+                contentType
+            }
+        };
+
+        const command = new InvokeCommand({
+            FunctionName: functionName,
+            Payload: new TextEncoder().encode(JSON.stringify(payload))
+        });
 
         let parsedJson;
         let rawResponse = "No raw response captured";
 
         try {
-            // Response is now a stringified JSON containing { rawResponse, cleanedJson }
-            let wrapper: any = response;
-            if (typeof wrapper === 'string') wrapper = JSON.parse(wrapper);
-            if (typeof wrapper === 'string') wrapper = JSON.parse(wrapper); // Double parse safety
+            const response = await lambdaClient.send(command);
 
-            if (wrapper && typeof wrapper === 'object' && wrapper.cleanedJson) {
-                rawResponse = wrapper.rawResponse;
-                parsedJson = JSON.parse(wrapper.cleanedJson);
-            } else {
-                // Fallback for backward compatibility or direct JSON
-                parsedJson = wrapper;
+            if (response.FunctionError) {
+                throw new Error(`Lambda execution failed: ${response.FunctionError}`);
             }
+
+            // Decode payload
+            if (response.Payload) {
+                const resultString = new TextDecoder().decode(response.Payload);
+                // Handler returns a JSON string, so we need to parse it once to get the string, and again to get the object?
+                // Handler: return JSON.stringify({ ... })
+                // ResultString: "{\"rawResponse\":...}"
+
+                let wrapper: any = JSON.parse(resultString);
+                if (typeof wrapper === 'string') wrapper = JSON.parse(wrapper);
+
+                if (wrapper && typeof wrapper === 'object' && wrapper.cleanedJson) {
+                    rawResponse = wrapper.rawResponse;
+                    parsedJson = JSON.parse(wrapper.cleanedJson);
+                } else {
+                    parsedJson = wrapper;
+                }
+            } else {
+                throw new Error("Empty response from Lambda");
+            }
+
         } catch (e: any) {
-            throw new Error("Failed to parse AI response: " + e.message);
+            console.error("Lambda Invocation Error:", e);
+            // Handle timeout specifically if SDK throws it (though default is high, network might fail)
+            throw new Error("Resume analysis failed: " + e.message);
         }
 
         // Inject raw response into debug notes if missing
         if (!parsedJson._debug_notes) {
-            parsedJson._debug_notes = "Raw Output: " + rawResponse.substring(0, 500); // Truncate for sanity
+            parsedJson._debug_notes = "Raw Output: " + (rawResponse ? rawResponse.substring(0, 500) : "None");
         }
 
         // 3. Map to ResumeDocument structure
