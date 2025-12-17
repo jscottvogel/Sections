@@ -43,6 +43,8 @@ export class DocumentParser {
             credentials: session.credentials
         });
 
+        console.log("Starting Direct Lambda Analysis via function:", functionName);
+
         // Construct event that matches AppSync resolver structure so we don't need to change handler logic
         const payload = {
             arguments: {
@@ -61,7 +63,15 @@ export class DocumentParser {
         let rawResponse = "No raw response captured";
 
         try {
-            const response = await lambdaClient.send(command);
+            // 15 minute client-side timeout to match Lambda
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 900000); // 15 mins
+
+            const response = await lambdaClient.send(command, {
+                abortSignal: controller.signal
+            });
+
+            clearTimeout(timeoutId);
 
             if (response.FunctionError) {
                 throw new Error(`Lambda execution failed: ${response.FunctionError}`);
@@ -88,9 +98,9 @@ export class DocumentParser {
             }
 
         } catch (e: any) {
-            console.error("Lambda Invocation Error:", e);
+            console.error("Direct Lambda Invocation Error:", e);
             // Handle timeout specifically if SDK throws it (though default is high, network might fail)
-            throw new Error("Resume analysis failed: " + e.message);
+            throw new Error("Direct Lambda Analysis failed: " + e.message);
         }
 
         // Inject raw response into debug notes if missing
